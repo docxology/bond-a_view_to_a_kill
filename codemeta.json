@@ -1,31 +1,26 @@
 {
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
+  "name": "A View to a Kill: ZORIN — Special-Agent Mission Software",
+  "codeRepository": "local-only (no remote)",
+  "programmingLanguage": "Python",
+  "runtimePlatform": "Python >= 3.10",
+  "license": "MIT",
+  "version": "0.1.0",
+  "description": "PROJECT BOND film package (A View to a Kill, 1985, mission codename ZORIN). Deterministic models of microchip supply-chain monopoly choke points, flood-the-mine water-ingress dynamics, and horse-race form / cover-risk analytics, wrapped in the FROZEN bond_api MissionProvider protocol.",
   "author": [
     {
-      "@id": "https://orcid.org/0000-0001-6232-9096",
       "@type": "Person",
-      "affiliation": {
-        "@type": "Organization",
-        "name": "Active Inference Institute"
-      },
+      "givenName": "Daniel Ari",
       "familyName": "Friedman",
-      "givenName": "Daniel Ari"
+      "affiliation": "Active Inference Institute"
     }
   ],
-  "codeRepository": "https://github.com/docxology/a_view_to_a_kill",
-  "dateModified": "2026-07-10",
-  "identifier": "10.5281/zenodo.20417136",
   "keywords": [
-    "optimization algorithms",
-    "gradient descent",
-    "convergence analysis",
-    "numerical methods",
-    "mathematical programming",
-    "reproducible research",
-    "infrastructure automation"
-  ],
-  "license": "https://spdx.org/licenses/MIT",
-  "name": "Convergence Analysis of Gradient Descent Optimization",
-  "version": "2.5.2"
+    "microchip supply-chain security",
+    "monopoly choke points",
+    "mine flooding simulation",
+    "race-form cover analytics",
+    "deterministic simulation"
+  ]
 }

@@ -1,19 +1,28 @@
-"""Pytest configuration for a_view_to_a_kill tests."""
+"""Shared pytest fixtures/config for the ZORIN package.
+
+Pins the headless matplotlib backend (so figure tests never open display
+windows) and guarantees ``src/`` is importable regardless of how pytest is
+invoked. No mocks anywhere — tests use real computation and real data only.
+"""
+
+from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
-# Force headless backend for matplotlib in tests
+import pytest
+
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-# Add src/ AND the repo root to path so the documented per-project pytest command
-# works from a clean environment. The project pyproject's `pythonpath` is
-# project-relative and omits the repo root, so without this the suite cannot import
-# `infrastructure` (tests collect-error). The project lives at
-# projects/templates/<name>/, so the repo root is three levels above ROOT.
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SRC = os.path.join(ROOT, "src")
-REPO_ROOT = os.path.abspath(os.path.join(ROOT, "..", "..", ".."))
-for _path in (REPO_ROOT, SRC):
-    if _path not in sys.path:
-        sys.path.insert(0, _path)
+# Ensure the package's src/ is importable even when pytest runs from a
+# directory where `pythonpath` is not honoured.
+_SRC = Path(__file__).resolve().parents[1] / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+
+@pytest.fixture
+def project_root() -> Path:
+    """Path to the package root (parent of ``src/``/``tests/``)."""
+    return Path(__file__).resolve().parents[1]

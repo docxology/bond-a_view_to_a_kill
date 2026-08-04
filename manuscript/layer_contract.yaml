@@ -1,5 +1,36 @@
-# Code-centric exemplar: optional monorepo adapters only.
-allow_infrastructure_imports:
-  - src/analysis/_infra.py
-  - src/_runtime.py
-  - src/benchmark_support.py
+# ZORIN layer contract — src/ boundary rules.
+
+surfaces:
+  pure_core:
+    modules:
+      - src/a_view_to_a_kill/chip_supply_chain.py
+      - src/a_view_to_a_kill/mine_flood.py
+      - src/a_view_to_a_kill/race_analytics.py
+    rules:
+      - "no bond_api imports (importable standalone)"
+      - "no infrastructure.* imports"
+      - "deterministic, no random draws"
+  adapter:
+    module: src/a_view_to_a_kill/mission.py
+    rules:
+      - "only module importing bond_api"
+      - "implements the FROZEN MissionProvider protocol"
+      - "registers gadgets with the bond_api GadgetRegistry"
+  manuscript:
+    module: src/a_view_to_a_kill/manuscript_variables.py
+    rules:
+      - "no bond_api imports (works in fallback)"
+      - "metrics computed from pure core, never authored"
+  figures:
+    module: src/a_view_to_a_kill/figures/plots.py
+    rules:
+      - "deterministic matplotlib, Agg backend"
+      - "writes only to an explicit output dir"
+
+scripts:
+  - "thin CLIs: import src + bond_api, print reports; no business logic"
+
+enforced_by:
+  - "uv run pytest tests/ --cov=src --cov-fail-under=90"
+  - "uv run ruff check src/ scripts/ tests/"
+  - "uv run mypy src/ scripts/"

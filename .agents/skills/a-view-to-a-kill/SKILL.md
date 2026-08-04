@@ -1,53 +1,66 @@
 ---
 name: a-view-to-a-kill
-description: Code-centric optimization research exemplar — gradient descent, convergence analysis, automated figures, dashboard, and publication-quality PDF.
-version: 0.1.0
-author: docxology
-license: MIT
-tags: [exemplar, code, optimization, thin-orchestrator]
+description: Build/maintain the PROJECT BOND film package a_view_to_a_kill (ZORIN). Use when working inside this package.
 ---
 
-# a-view-to-a-kill
+# a-view-to-a-kill (ZORIN) — in-repo skill
 
-Project-scoped skill for the in-repo exemplar at
-`projects/working/bond/a_view_to_a_kill/`. Load this when working inside the project.
+PROJECT BOND film package for *A View to a Kill* (1985), mission codename
+ZORIN. Local-only tree under `projects/working/bond/a_view_to_a_kill/` —
+never push, no remote.
 
-## When to Use
+## When to use
 
-- Working inside the `a_view_to_a_kill` exemplar — running scripts, editing source,
-  or regenerating outputs.
-- Forking this exemplar as the starting scaffold for a new research project.
-- Validating that the exemplar's contracts (thin-orchestrator, layer boundaries,
-  no-mocks testing) still hold after changes.
+Working inside this package: adding a concept algorithm, touching the mission
+provider, regenerating the manuscript/figures, or running its gates.
 
-## Quick Reference
+## What it is
+
+Three pure domain modules wrapped in the FROZEN `bond_api.MissionProvider`:
+
+- `chip_supply_chain.py` — microchip supply-chain security graph: HHI,
+  betweenness choke points, single-source dependence, cascade failure,
+  monopoly share / post-elimination HHI.
+- `mine_flood.py` — mass-conserving Euler water-ingress simulation; flood
+  fraction, flood times, critical ingress.
+- `race_analytics.py` — speed indices, EWMA ratings, softmax win
+  probabilities, signal-detection cover risk, expected value.
+
+Only `mission.py` imports `bond_api` (path dependency in `pyproject.toml`);
+`manuscript_variables.py` and `figures/` are `bond_api`-free. `scripts/` are
+thin CLIs.
+
+## Quick commands
 
 ```bash
-# From the repository root
-uv run pytest projects/working/bond/a_view_to_a_kill/tests --cov=projects/working/bond/a_view_to_a_kill/src --cov-fail-under=90
-uv run python scripts/pipeline/stage_02_analysis.py --project templates/a_view_to_a_kill
-uv run python scripts/pipeline/stage_03_render.py --project templates/a_view_to_a_kill
-uv run python scripts/pipeline/stage_04_validate.py --project templates/a_view_to_a_kill
-uv run python scripts/pipeline/stage_05_copy.py --project templates/a_view_to_a_kill
+cd /Users/4d/Documents/GitHub/template/projects/working/bond/a_view_to_a_kill
+uv sync --extra dev
+uv run python scripts/z_generate_manuscript_variables.py   # tokens + figures -> output/
+uv run python scripts/mission_execute.py                    # run the mission
+uv run pytest tests/ --cov=src --cov-fail-under=90 -q
+uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
+uv run mypy src/ scripts/
 ```
 
-## Pitfalls
+## Pitfalls (learned here)
 
-- **Keep scripts thin.** Business logic belongs in `src/` or shared
-  `infrastructure/`, not in `scripts/`.
-- **No mocks.** All tests must use real data, real files, and real
-  computation.
-- **Outputs are disposable.** Never hand-edit `output/` — regenerate from
-  source and config.
-- **Keep tracked benchmarks deterministic.** Serialize reproducible inputs,
-  objective values, and checks; keep wall-clock timing as a runtime-only
-  diagnostic.
-- **Run from the repo root.** Commands assume the template monorepo root
-  as working directory unless the child `AGENTS.md` states otherwise.
+- **Don't put markdown tables in `.yaml` files** — the write-file YAML
+  validator rejects them. Use real YAML mappings (see `data/claim_ledger.yaml`).
+- **Don't write a literal `{{TOKEN}}` in a manuscript `.md`** — it trips the
+  strict cross-reference gate. Write "variable tokens" in prose instead.
+- **`bond_api` only in `mission.py`** — the pure core must stay importable
+  without it (fallback). Tests verify this shape indirectly.
+- **mypy loop-variable collision**: `for i, x in enumerate(xs)` reusing a
+  variable name already typed elsewhere in the same function confuses mypy —
+  use distinct names (`tunnel_index`, not `pair`).
+- **The token cross-ref test strips `{{ }}`** before comparing to
+  `generate_variables()` keys — bare names vs braced matches.
+- **Coverage gate is total ≥90%** — a ~0% figure file dragged the total under;
+  add a `test_figures.py` that renders into `tmp_path` and asserts PNG magic
+  bytes + determinism.
 
-## Cross-refs
+## Verification before done
 
-- Project contract: [`AGENTS.md`](../../../AGENTS.md)
-- README: [`README.md`](../../../README.md)
-- TODO: [`TODO.md`](../../../TODO.md)
-- Exemplar roster: [`projects/AGENTS.md`](../../../../../AGENTS.md)
+Run the gates above, confirm `rg "template[_]code_project"` is clean (expect
+zero in src/manuscript/docs), and `git status` clean after a path-scoped
+commit. Record modules + coverage + commit SHA in the final report.

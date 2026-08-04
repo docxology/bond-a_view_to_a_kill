@@ -1,49 +1,27 @@
-domain: code_research
-display_name: Code Research Exemplar
-required_packages:
-  - numpy
-  - matplotlib
-  - pytest
-preferred_outputs:
-  - pdf
-  - html
-  - docx
-  - epub
-validation_gates:
-  - experiment_method_design
-  - artifact_manifest
-  - evidence_grounding
-  - render_validation
-  - publication_readiness
-figure_types:
-  - convergence_plot
-  - performance_benchmark
-  - sensitivity_analysis
-citation_policy: official_or_scholarly
-source_policy: "Prefer primary project outputs, official package documentation, and scholarly optimization references."
+# domain_profile.yaml — a_view_to_a_kill (ZORIN)
+# Declarative advisory controls for an agentic research workflow. Validation
+# inputs only; they do not execute autonomous agents.
+
+domain: "deterministic mission modeling (selected: microchip supply-chain security, mine-flood water ingress, race-form cover analytics)"
+
 review_gates:
-  - experiment_method_design
-  - render_validation
-  - publication_readiness
+  - coverage_fail_under: 90
+    command: "uv run pytest tests/ --cov=src --cov-fail-under=90 -q"
+  - ruff: "uv run ruff check src/ scripts/ tests/"
+  - mypy: "uv run mypy src/ scripts/"
+  - lineage: "rg template[_]code_project (expect zero in src, manuscript, docs)"
+  - no_mocks: "grep for unittest.mock / MagicMock / @patch in tests/ (expect zero)"
+  - determinism: "two run_mission calls produce byte-identical reports"
+
+source_policy:
+  model_data: "documented fixed parameters in the pure core; no external fetch at runtime"
+
 artifact_expectations:
-  - output/data/manuscript_variables.json
-  - output/data/optimization_results.csv
-  - output/figures/convergence_plot.png
-  - output/reports/validation_report.json
-  - output/pdf/template_code_project_combined.pdf
-benchmark_rubric:
-  name: code-research-readiness
-  dimensions:
-    - name: output_validity
-      weight: 1.0
-    - name: reproducibility_bundle
-      weight: 1.0
-    - name: artifact_manifest
-      weight: 1.0
-    - name: evidence_grounding
-      weight: 2.0
-    - name: render_success
-      weight: 1.0
-    - name: publication_readiness
-      weight: 1.0
-llm_prompt_guidance: "Use generated optimization artifacts and manuscript variables as the evidence source; do not invent numeric results."
+  - "manuscript tokens computed from manuscript_variables.py (never authored)"
+  - "output/figures/*.png regenerated deterministically"
+  - "mission outcomes carry Provenance (seed 1985, input_hash)"
+
+benchmark_rubric_preferences:
+  - "prefer closed-form analytic expectations over loose bounds"
+  - "assert mass conservation to machine precision"
+  - "keep every numeric claim traceable to a generator function"

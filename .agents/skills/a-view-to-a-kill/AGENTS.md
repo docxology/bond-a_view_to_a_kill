@@ -1,6 +1,6 @@
 # a-view-to-a-kill skill — AGENTS.md
 
-Project-scoped skill bundle for the `a_view_to_a_kill` exemplar.
+Project-scoped skill bundle for the `a_view_to_a_kill` package (ZORIN).
 
 | File | Purpose |
 | --- | --- |
@@ -12,9 +12,9 @@ Project-scoped skill bundle for the `a_view_to_a_kill` exemplar.
 
 Agents that need to:
 
-- Drive the in-repo exemplar end-to-end.
-- Fork this exemplar as a starting scaffold.
-- Verify layer boundaries and thin-orchestrator contracts.
+- Work inside the ZORIN package (add concept math, mission provider, figures).
+- Verify layer boundaries and the thin-orchestrator / protocol contract.
+- Run the package gates (coverage, ruff, mypy, determinism).
 
 ## Cross-refs
 

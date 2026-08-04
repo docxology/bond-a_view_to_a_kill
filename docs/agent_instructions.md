@@ -1,160 +1,89 @@
-# AI Agent Instructions — a_view_to_a_kill Exemplar
+# AI Agent Instructions — a_view_to_a_kill (ZORIN)
 
 ## Why This File Exists
 
-`a_view_to_a_kill` is the **control positive** for the template repository: the canonical example proving that the computational-research path works correctly. Deviating from the rules below — introducing a mock, moving math to scripts/, breaking the src/infrastructure boundary — breaks the exemplar purpose and misleads future users who study this project to understand how the template works.
+`a_view_to_a_kill` is a PROJECT BOND film package — mission codename **ZORIN**,
+from *A View to a Kill* (1985). It formalizes the film's scheme as
+deterministic computational models: a microchip supply-chain monopoly graph,
+a flood-the-mine water-ingress simulation, and a horse-race form / cover-risk
+model. It implements the FROZEN `bond_api.MissionProvider` protocol around a
+pure domain core. Deviating from the rules below — introducing a mock, moving
+math to `scripts/`, hand-authoring a metric, or breaking the pure-core
+boundary — defeats the mission and the guardrails.
 
-Read this file before touching any other file in this project.
+Read this file before touching any other file in this package.
 
 ---
 
 ## Rule 1: Read the Hub First
 
-Reading order is mandatory, not advisory. Each document gates a category of action:
+Reading order is mandatory, not advisory:
 
-| Document | Governs | Skip consequence |
-|---|---|---|
-| **This file** | All modifications | Risk all violations below |
-| [`architecture.md`](architecture.md) | Any file-boundary change | Risk violating src/scripts boundary |
-| [`testing_philosophy.md`](testing_philosophy.md) | Any test modification | Risk introducing mocks or reducing coverage |
-| [`rendering_pipeline.md`](rendering_pipeline.md) | Any manuscript or output change | Risk unresolved `{{VARIABLE}}` tokens in PDF |
-| [`style_guide.md`](style_guide.md) | Any source code modification | Risk mock usage, wrong import layer, bad error messages |
-| [`syntax_guide.md`](syntax_guide.md) | Any manuscript `.md` modification | Risk hardcoded numbers, broken figure references |
+| Document | Governs |
+|---|---|
+| **This file** | All modifications |
+| [`architecture.md`](architecture.md) | Any file-boundary change (pure core vs adapter vs scripts) |
+| [`testing_philosophy.md`](testing_philosophy.md) | Any test modification |
 
 ---
 
 ## Rule 2: Coverage Gate — ≥90% on `src/`
 
-The test suite spans `test_optimizer.py` (pure math), `test_analysis_integration.py` (orchestration), `test_analysis_coverage.py` (orchestration branches and error paths), `test_experiment_config.py`, `test_figures_orchestration.py`, `test_dashboard_config.py`, `test_invariants.py`, `test_invariants_and_dashboard.py`, `test_manuscript_variables.py`, `test_documentation.py` (API doc helpers), and `test_scripts_smoke.py` (auxiliary script smoke). Both the project `pyproject.toml` and the root pipeline gate coverage at **90%**. Live test count + current coverage percentage live in [`docs/_generated/COUNTS.md`](../../../../docs/_generated/COUNTS.md) — do not hardcode either number in prose, because both drift faster than the docs touching them.
-
-Before modifying `src/optimizer.py`, count the existing tests for the function you are changing. After modifying, run:
+The suite spans the three concept test files (`test_chip_supply_chain.py`,
+`test_mine_flood.py`, `test_race_analytics.py`), `test_mission.py`,
+`test_manuscript_variables.py`, `test_figures.py`, and `test_scripts_smoke.py`.
+Both this project's `pyproject.toml` and the BOND preamble gate at 90%.
+Live test count + coverage live in [`docs/_generated/COUNTS.md`](
+_generated/COUNTS.md) — do not hardcode either in prose.
 
 ```bash
-uv run pytest projects/working/bond/a_view_to_a_kill/tests/ \
-    --cov=projects/working/bond/a_view_to_a_kill/src \
-    --cov-fail-under=90 \
-    --cov-report=term-missing \
-    -v
+uv run pytest tests/ --cov=src --cov-fail-under=90 -q
 ```
 
-If coverage drops, do not delete tests to make the number work — fix the gap.
+If coverage drops, fix the gap — do not delete tests.
 
 ---
 
 ## Rule 3: The Thin Orchestrator Boundary — `scripts/` vs `src/`
 
-**`src/optimizer.py`** contains pure mathematical functions: no file I/O, no infrastructure imports, no side-effects, stdlib `logging` only.
+- The pure core (`chip_supply_chain.py`, `mine_flood.py`,
+  `race_analytics.py`) contains all mathematics: no file I/O, no `bond_api`,
+  no `infrastructure`, no randomness.
+- `mission.py` is the **only** module that imports `bond_api` — it adapts the
+  pure core to the FROZEN `MissionProvider` protocol and registers gadgets.
+- `manuscript_variables.py` / `figures/` are also `bond_api`-free.
+- `scripts/*.py` are thin CLIs: bootstrap `sys.path`, import `src` + `bond_api`,
+  print reports. **No business logic.**
 
-**`scripts/*.py`** contains experiment coordination: loops over step sizes, calls to `src/` functions, delegation to `infrastructure.*`, writing CSVs and PNGs.
-
-**The boundary test**: If a line of code in `scripts/` contains a mathematical expression that determines the algorithm's output (a gradient, an update step, a convergence check), it violates the boundary. Move that expression to `src/` and write a test for it.
-
-**Forbidden**:
-```python
-# In scripts/optimization_analysis.py — BAD
-x = x - alpha * (x - 1.0)   # Gradient update rule belongs in src/
-```
-
-**Correct**:
-```python
-# In scripts/optimization_analysis.py — GOOD
-result = gradient_descent(x0, obj_func, grad_func, step_size=alpha)
-```
+The boundary test: if a line in `scripts/` contains the math that determines
+an output (a weir flow, an HHI, a softmax), it violates the boundary.
 
 ---
 
-## Rule 4: "Show, Not Tell" Documentation
+## Rule 4: Determinism Policy
 
-When updating `manuscript/` files, use explicit, verifiable references instead of vague descriptions.
-
-**BAD** (vague, unverifiable):
-```markdown
-Our testing framework validates numerical accuracy using standard approaches.
-```
-
-**GOOD** (concrete, linkable):
-```markdown
-`projects/working/bond/a_view_to_a_kill/tests/test_optimizer.py::TestComputeGradient` validates gradient
-accuracy against analytical solutions without mocks, using `numpy` arrays with known values.
-```
-
-**BAD** (vague):
-```markdown
-The infrastructure renders the manuscript to PDF automatically.
-```
-
-**GOOD** (concrete):
-```markdown
-`infrastructure/rendering/pdf_renderer.py` orchestrates Pandoc → XeLaTeX to produce
-`output/templates/a_view_to_a_kill/pdf/template_code_project_combined.pdf` from substituted markdown in `projects/working/bond/a_view_to_a_kill/output/manuscript/`.
-```
+Everything is deterministic. Fixed datasets, fixed seeds (mission seed 1985),
+no untracked random draws, no wall-clock in computed outputs. Refactorations
+must preserve byte-determinism (two `run_mission` calls produce identical
+reports; the flood simulator is byte-identical across calls).
 
 ---
 
-## Rule 5: Determinism Policy
+## Rule 5: Zero-Mock Policy
 
-Prefer fixed inputs in `src/` and tests. When a test uses random draws (e.g., timing on large random arrays), two requirements apply:
-
-1. Assertions must use **bounds** (`assert elapsed < 5.0`), not exact values (`assert elapsed == 0.003`).
-2. The test docstring must explain why timing is the relevant property to check.
-
-Fixed seeds are acceptable for `numpy.random` in timing tests:
-```python
-rng = np.random.default_rng(42)
-large_A = rng.standard_normal((50, 50))
-```
-
-Prefer analytical inputs over random inputs whenever a mathematical property can be directly verified.
+No `unittest.mock`, `MagicMock`, `@patch`, or `create_autospec` anywhere in
+`tests/`. Tests use real computation and real data only. Mock tests can pass
+even when the mathematics is wrong — the mission forbids them.
 
 ---
 
-## Rule 6: Style and Syntax Guides Govern Their Domains
-
-- **[`style_guide.md`](style_guide.md)** governs: `src/optimizer.py`, `tests/test_optimizer.py`, `scripts/*.py` — mock prohibition, infrastructure delegation, thin orchestrator, error message format, type hints.
-- **[`syntax_guide.md`](syntax_guide.md)** governs: `manuscript/*.md` — `{{VARIABLE}}` injection, `[@label]` Pandoc-crossref cross-references, figure labels, table captions.
-
-Do not apply code-style rules to manuscript prose, and do not apply manuscript syntax rules to Python source.
-
----
-
-## Rule 7: `output/` Is Disposable — Never Edit Generated Files
-
-The entire `projects/working/bond/a_view_to_a_kill/output/` tree is written by the pipeline and overwritten on every run. Editing a file in `output/` has zero lasting effect and will confuse future agents.
-
-If you need to change what a generated file contains, change the **generator**:
-- To change `output/data/optimization_results.csv` → modify `src/analysis/` (re-run via `scripts/optimization_analysis.py`)
-- To change `output/manuscript/03_results.md` → modify `manuscript/03_results.md` (the template) and/or `scripts/z_generate_manuscript_variables.py` (the variable definitions)
-- To change `output/pdf/template_code_project_combined.pdf` → modify the manuscript source files, then re-render
-
-See [`output_conventions.md`](output_conventions.md) for the complete regeneration sequence.
-
----
-
-## Verification Checklist
-
-Run all three commands before submitting any change to this project:
+## Verification before done
 
 ```bash
-# 1. Tests pass and coverage gate is met
-uv run pytest projects/working/bond/a_view_to_a_kill/tests/ \
-    --cov=projects/working/bond/a_view_to_a_kill/src \
-    --cov-fail-under=90 -q
-
-# 2. No mocks exist anywhere in tests/
-grep -r "unittest.mock\|MagicMock\|@patch\|create_autospec" \
-    projects/working/bond/a_view_to_a_kill/tests/ || echo "Clean — no mocks found"
-
-# 3. The mathematical primitives (optimizer.py, invariants.py) have no infrastructure imports.
-#    These two files MUST remain infrastructure-free so they are copy-pasteable into any
-#    Python environment without the pipeline installed. Other `src/` modules (`analysis/`,
-#    `dashboard.py`, `manuscript_variables.py`) are orchestration layers and may import
-#    `infrastructure.*` behind try/except fallbacks; that is intentional and documented in
-#    `src/AGENTS.md` and `architecture.md`.
-grep -nE "^(from|import) infrastructure" \
-    projects/working/bond/a_view_to_a_kill/src/optimizer.py \
-    projects/working/bond/a_view_to_a_kill/src/invariants.py \
-    && echo "VIOLATION — math primitive imports infrastructure" \
-    || echo "Clean — math primitives are infrastructure-free"
+uv run pytest tests/ --cov=src --cov-fail-under=90 -q
+uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ scripts/ tests/
+uv run mypy src/ scripts/
+rg -n "template[_]code_project" . --glob '!uv.lock' --glob '!.git/**' --glob '!output/**' || echo Clean
+grep -nrE "^(from|import) infrastructure" src/ || echo Clean
+git status --short   # clean after commit
 ```
-
-All three must produce zero violations (or the "Clean" message for checks 2 and 3).

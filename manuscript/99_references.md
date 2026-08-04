@@ -1,10 +1,21 @@
-# References {#sec:references}
+# References
 
-Bibliography lives in [`manuscript/references.bib`](references.bib) and is read by Pandoc during PDF render. The build pipeline invokes Pandoc with `--natbib`, so every `[@key]` citation in the manuscript is rewritten to the appropriate `\cite{}`/`\citep{}`/`\citet{}` LaTeX command and resolved against the bib file.
+[brandes]: L. Brandes, *A faster algorithm for betweenness centrality*,
+Journal of Mathematical Sociology, 25(2), 2001.
 
-To validate that `references.bib` is syntactically clean and contains the required fields per entry type:
+[hhi]: Concentration measures in U.S. antitrust practice (Herfindahl-Hirschman
+Index), U.S. Department of Justice & Federal Trade Commission *Horizontal
+Merger Guidelines*, 2010.
 
-```bash
-uv run python -m infrastructure.reference.citation.cli validate \
-    projects/working/bond/a_view_to_a_kill/manuscript/references.bib --strict
-```
+[hays]: R. Hays, *The Racing Form: Index to Past Performances*,
+Daily Racing Form Press, 1989 (handicapping context).
+
+[film]: A View to a Kill, dir. J. Glen, Eon Productions, 1985 — the film
+whose scheme this package formalizes (mission codename ZORIN).
+
+[dixon]: P. Dixon & M. Coles, *Modelling association football scores and
+inefficiencies in the football betting market*, Applied Statistics, 46(4),
+1997 (softmax outcome-model context).
+
+[ast]: S. Ahuja, T. Magnanti & J. Orlin, *Network Flows*,
+Prentice Hall, 1993 (graph cascade and flow context).

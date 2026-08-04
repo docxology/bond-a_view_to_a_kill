@@ -1,22 +1,22 @@
-authors:
-- affiliation: Active Inference Institute
-  family-names: Friedman
-  given-names: Daniel Ari
-  orcid: 0000-0001-6232-9096
 cff-version: 1.2.0
-date-released: '2026-07-10'
-doi: 10.5281/zenodo.20417136
-keywords:
-- optimization algorithms
-- gradient descent
-- convergence analysis
-- numerical methods
-- mathematical programming
-- reproducible research
-- infrastructure automation
+message: "If you reuse this software, please cite it as follows."
+title: "A View to a Kill: ZORIN — Special-Agent Mission Software"
+abstract: >-
+  PROJECT BOND film package (A View to a Kill, 1985, mission codename ZORIN).
+  Deterministic models of microchip supply-chain monopoly choke points,
+  flood-the-mine water-ingress dynamics, and horse-race form / cover-risk
+  analytics, wrapped in the FROZEN bond_api MissionProvider protocol.
+authors:
+  - family-names: Friedman
+    given-names: Daniel Ari
+    orcid: "https://orcid.org/0000-0001-6232-9096"
+    affiliation: "Active Inference Institute"
+version: "0.1.0"
+date-released: "2026-08-04"
 license: MIT
-message: If you use this software, please cite it using the metadata from this file.
-repository-code: https://github.com/docxology/a_view_to_a_kill
-title: Convergence Analysis of Gradient Descent Optimization
-type: software
-version: 2.5.2
+keywords:
+  - microchip supply-chain security
+  - monopoly choke points
+  - mine flooding simulation
+  - race-form cover analytics
+  - deterministic simulation

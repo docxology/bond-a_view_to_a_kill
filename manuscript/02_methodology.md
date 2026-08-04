@@ -1,83 +1,95 @@
-# Methodology {#sec:methodology}
+# Methodology {#sec:methods}
 
-This section describes the implementation methodology, explicitly detailing how the optimization algorithms are constructed, validated, and analyzed using the Generalized Research Template's `infrastructure` and `tests` ecosystems.
+All three models are pure functions of fixed, documented datasets; no random
+draws, no external state, no wall-clock dependence. This guarantees
+byte-identical reruns.
 
-## Algorithm Implementation
+## Microchip supply-chain monopoly analysis
 
-### Gradient Descent Algorithm
+The supply chain is a directed graph of firms $V$ (nodes) and supply links
+$E \subseteq V \times V$ (edges flowing forward through stages
+`wafer -> fabrication -> assembly -> distribution`). Each firm $v$ has a
+throughput capacity $c_v$. The default dataset is a documented
+reconstruction of the mid-1980s semiconductor market (${{SC_NODES}}$ firms,
+${{SC_LINKS}}$ links).
 
-The core algorithm implements the iterative procedure for unconstrained optimization. The [`optimizer` module](https://github.com/docxology/template/blob/main/projects/working/bond/a_view_to_a_kill/src/optimizer.py) uses the standard-library `logging` logger for optional verbose diagnostics; the [analysis orchestrator](https://github.com/docxology/template/blob/main/projects/working/bond/a_view_to_a_kill/scripts/optimization_analysis.py) uses `infrastructure.core.logging.utils.get_logger`. Tests run under the hermetic boundaries defined in the [test configuration](https://github.com/docxology/template/blob/main/projects/working/bond/a_view_to_a_kill/tests/conftest.py).
+**Concentration.** Within a stage (or the whole graph), firm $v$'s capacity
+share is $s_v = c_v / \sum_u c_u$, and the Herfindahl-Hirschman index is
+$\mathrm{HHI} = 10000 \sum_v s_v^2$, ranging from $0$ (perfect competition)
+to $10000$ (monopoly). The default market opens at
+HHI ${{SC_HHI_BEFORE}}$.
 
-**Algorithm — Gradient Descent (implemented in the [optimizer module](https://github.com/docxology/template/blob/main/projects/working/bond/a_view_to_a_kill/src/optimizer.py#L87-L173))**
+**Choke points.** Structural choke points are measured with Brandes'
+betweenness-centrality algorithm: a firm's betweenness is the fraction of
+ordered node pairs for which it lies on a shortest directed supply path.
+Wafer sources carry zero betweenness by construction; the top choke point is
+`{{SC_TOP_CHOKE}}` (see [@fig:choke_points]).
 
-> **Input:** Initial point $x_0$, step size $\alpha$, tolerance $\epsilon$, max iterations $N_{\max}$
->
-> 1. Initialize $k \leftarrow 0$
-> 2. **While** $k < N_{\max}$ **do:**
->    - Compute gradient $g_k = \nabla f(x_k)$
->    - **If** $\|g_k\|_2 < \epsilon$ **then return** $x_k$ *(converged)*
->    - Update: $x_{k+1} \leftarrow x_k - \alpha \cdot g_k$
->    - $k \leftarrow k + 1$
-> 3. **Return** $x_k$ *(max iterations reached)*
+**Single-source dependence.** A downstream firm whose only upstream supplier
+is one firm is a single point of failure; such dependencies are the monopolist's
+pressure points.
 
-## Infrastructure Integration
+**Cascade failure.** Removing a set $R$ of firms (acquired-and-dismantled
+competitors), a downstream firm is *starved* if it has no directed supply path
+from any surviving wafer supplier. The starved fraction is
+$\sum_{v \in S} 1 / |V|$.
 
-The methodology explicitly bridges theoretical mathematics with production-grade validation through the `infrastructure.scientific` module.
+**The ZORIN attack.** ZORIN owns `zorin_fab` and `zorin_assembly`; by
+acquiring the independent fabricators `amd_fab` and `nec_fab` and eliminating
+the rest of the market, his fabrication share rises to
+${{SC_ZORIN_FAB_SHARE}}$ and market-wide HHI jumps to ${{SC_HHI_AFTER}}$.
+Formally, `monopoly_share` computes ZORIN's surviving capacity share per
+stage once every non-acquired independent is removed, and
+`post_elimination_hhi` merges ZORIN's holdings into one entity before
+recomputing concentration.
 
-### Numerical Stability Analysis
+## Flood-the-mine water-ingress dynamics
 
-Rather than writing ad-hoc validation code, the project imports `infrastructure.scientific.stability.check_numerical_stability`. This utility subjects the objective function to a barrage of extreme inputs (NaN, Inf, $\pm 10^{10}$) to calculate a formalized stability score. If this score degrades, the [analysis orchestrator](https://github.com/docxology/template/blob/main/scripts/pipeline/stage_02_analysis.py) execution deliberately aborts, ensuring the methodology cannot enter unrecoverable states.
+The mine is a network of chambers (nodes) and bidirectional tunnels (edges).
+Chamber $i$ has volume $\Omega_i$, horizontal cross-sectional area $A_i$, and
+elevation $z_i$; water level is $h_i = z_i + w_i / A_i$ where $w_i$ is the
+water volume in the chamber. Tunnels have cross-sectional area $a_{ij}$.
 
-### Performance Benchmarking
+Water enters at designated ingress chambers at total rate $Q$ (split evenly),
+and flows through each tunnel from the higher-head end to the lower under a
+simplified weir law
 
-The analysis exercises [`infrastructure.scientific.benchmarking.benchmark_function`](https://github.com/docxology/template/blob/main/infrastructure/scientific/benchmarking.py) as a runtime diagnostic. Host-dependent timing and memory observations are logged but excluded from tracked evidence. The canonical report records fixed inputs and exact objective values, while the dimensional figure reports deterministic convergence iterations and the proxy $d \times \text{iterations}$; neither surface claims that one host run proves an asymptotic bound.
+$$ q_{ij} = C\, a_{ij}\, \sqrt{\max(h_i - h_j,\, 0)}, $$
 
-## Convergence Analysis
+with discharge coefficient $C = 0.6$. Each timestep's tentative flows are
+scaled so no chamber lends more water than it holds, making the scheme
+**exactly mass-conserving**. State evolves by explicit Euler with timestep
+$1$ s to horizon ${{CONFIG_FLOOD_HORIZON}}$ s at ingress
+${{CONFIG_FLOOD_INGRESS_RATE}}$ m$^3$/s. A chamber is *flooded* once
+$w_i \geq \Omega_i$; `flooded_fraction` reports the share of chambers flooded
+at a time $t$. `critical_ingress` picks the single entry that floods the most
+of the network by the horizon. The default "Main Strike" network has
+${{FLOOD_CHAMBERS}}$ chambers and ${{FLOOD_TUNNELS}}$ tunnels totalling
+${{FLOOD_TOTAL_VOLUME}}$ m$^3$ (see [@fig:flood_curve]).
 
-For quadratic functions $f(x) = \frac{1}{2}x^T A x - b^T x$ where $A$ is positive definite, the convergence factor becomes [@bertsekas1999nonlinear]:
+## Race-form analytics and cover model
 
-\begin{equation}
-\label{eq:convergence_factor}
-\rho = \frac{|\lambda_{\max} - \alpha\lambda_{\min}|}{|\lambda_{\min} + \alpha\lambda_{\max}|}
-\end{equation}
+Raw race records are normalized to a seconds-per-furlong pace corrected for
+going (firm/soft) and weight carried:
+$\tau = (t - g\, d - \max(w - 126,0)\,\epsilon\, d)/d$. The speed index is the
+seconds saved per furlong versus par, $14.0 - \tau$. A horse's form rating is
+the exponentially-weighted moving average of its speed indices, where a race
+`age` before the newest is weighted $0.5^{\text{age}/\text{halflife}}$
+(halflife ${{CONFIG_RACE_HALFLIFE}}$). Win probabilities follow a softmax
+over ratings.
 
-Optimal convergence occurs when $\alpha = \frac{2}{\lambda_{\min} + \lambda_{\max}}$, yielding $\rho = \frac{\kappa - 1}{\kappa + 1}$.
+**Cover risk.** The stewards flag a horse whose performance improves by more
+than $\theta = 1.0$ speed-index units above its own baseline. With
+$n$ races and natural race-to-race variability $\sigma$, the standard error of
+the mean performance is $\sigma/\sqrt{n}$, so applying a boost $b$ gives a
+detection risk
 
-## Experimental Setup
+$$ \mathrm{risk}(b) = \Phi\!\left(\frac{b - \theta}{\sigma/\sqrt{n}}\right), $$
 
-### Step Size Analysis
-
-Step sizes are not chosen ad hoc in the manuscript: they are read from `experiment.step_sizes` in `manuscript/config.yaml` and passed through `run_convergence_experiment()` in `src/analysis/` (entry: `scripts/optimization_analysis.py`). The active grid for this build is:
-
-{{CONFIG_STEP_SIZES_BULLETS}}
-
-Labels follow the same agency taxonomy used for plot colours (`_agency_category` in the analysis script): **conservative** (small $\alpha$, slow but stable on $H=I$), **near-optimal** (including $\alpha=1$ where the method reaches $x^\ast$ in one step for this quadratic), **aggressive** ($1 < \alpha < 2$, still linearly contracting in $|x-x^\ast|$ but oscillatory in sign), and **divergent** ($|1-\alpha| \geq 1$).
-
-### Zero-Mock Testing Methodology
-
-The most critical aspect of the project's methodology is its validation framework. The project is governed by a strict Zero-Mock testing policy, evaluated actively by executing `uv run pytest projects/working/bond/a_view_to_a_kill/tests/` during the infrastructure build phase.
-
-1. **Project tests**: [`projects/working/bond/a_view_to_a_kill/tests/test_optimizer.py`](../tests/test_optimizer.py) exercises `src/optimizer.py` (typical, edge, boundary, and pathological inputs including NaN/Inf and zero gradients) and, when infrastructure imports succeed, call into `optimization_analysis.py` helpers—without mocks. Suite size: [`docs/_generated/COUNTS.md`](../../../../docs/_generated/COUNTS.md).
-2. **Infrastructure validation**: The repository-level `tests/infra_tests/` suite validates shared template modules (e.g. pipeline and discovery helpers) independently of this project’s manuscript.
-3. **Coverage Gates**: The [GitHub Actions CI workflow](https://github.com/docxology/template/blob/main/.github/workflows/ci.yml) enforces a mandatory ≥90% statement coverage gate on `projects/working/bond/a_view_to_a_kill/src/` prior to treating the project as build-green.
-
-### Stopping rule and reporting
-
-`gradient_descent()` terminates when $\|\nabla f(x_k)\|$ falls below `experiment.tolerance`, when $k$ reaches `experiment.max_iterations`, or when an objective, gradient, or update becomes non-finite. The boolean `converged` plus `termination_reason` in exported CSV rows distinguish these outcomes. A non-finite candidate is rejected before it enters `objective_history`, preserving the last finite state for reproducible reporting. Downstream, `scripts/z_generate_manuscript_variables.py` aggregates the CSV into `RESULT_*` placeholders so tables and prose cannot drift from the last analysis run.
-
-### Figure generation contract
-
-Each figure in `03_results.md` maps to a generator in `src/figures/` (`generate_convergence_plot`, `generate_step_size_sensitivity_plot`, `generate_convergence_rate_plot`, `generate_complexity_visualization`, `generate_stability_visualization`, `generate_benchmark_visualization`), orchestrated by `src/analysis/` / `scripts/optimization_analysis.py`. Captions in the markdown intentionally name the function and the key parameters (tolerance lines, grids, dimensions) so reviewers can navigate from PDF to code without inferring hidden defaults.
-
-The same generator writes explicit `metadata.alt_text` for every registered
-figure. The alt text states what the visual encodes and preserves the boundary
-between deterministic observations and host-dependent diagnostics. Run the
-opt-in publication migration gate with
-`--require-figure-accessibility` to verify that every referenced figure has
-this metadata before promotion.
-
-## Analysis Pipeline & LaTeX Integration
-
-The automated analysis script leverages [`infrastructure.core.progress`](https://github.com/docxology/template/blob/main/infrastructure/core/progress.py) (`ProgressBar`, `SubStageProgress`) to orchestrate experiments, collect convergence trajectories, and generate publication-quality visualizations seamlessly.
-
-The research template supports advanced LaTeX customization through the `preamble.md` configuration. This is ingested directly by `infrastructure.rendering.latex_utils.py` and `pdf_renderer.py`, automatically linking compiled PGF plots and BibTeX citations. This automated approach ensures an unbreakable chain of custody from raw algorithmic execution to the final rendered manuscript.
+the probability a normal draw with mean $b$ clears the threshold. `cover_viability`
+returns `win_delta`, `detection_risk`, and
+`expected_value = win_delta * PURSE - risk * DETECTION_PENALTY`. For the
+${{CONFIG_COVER_BOOST}}$ boost to Pegasus (with
+$\sigma = {{CONFIG_COVER_SIGMA}}$) the risk is ${{COVER_DETECTION_RISK}}$ and
+expected value ${{COVER_EXPECTED_VALUE}}$ — a sustainable cover — whereas a
+blatant boost is caught (see [@fig:race_cover]).

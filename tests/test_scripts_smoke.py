@@ -1,4 +1,9 @@
-"""Smoke tests for auxiliary pipeline scripts (non-gated)."""
+"""Subprocess smoke tests for the thin ZORIN CLI scripts.
+
+Each script self-bootstraps ``src/`` onto ``sys.path``, so ``python
+scripts/x.py`` works from the package root. We drive them with the venv
+interpreter and assert exit codes + artifact output — all real I/O, no mocks.
+"""
 
 from __future__ import annotations
 
@@ -6,65 +11,61 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = PROJECT_ROOT / "scripts"
 
 
-def test_generate_api_docs_writes_reference() -> None:
-    """generate_api_docs.py is aesthetic-only but should run without error."""
-    script = PROJECT_ROOT / "scripts" / "generate_api_docs.py"
-    result = subprocess.run(
-        [sys.executable, str(script)],
+def _run(script: str, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPTS / script), *args],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
-        timeout=120,
-        check=False,
     )
-    assert result.returncode == 0, result.stderr or result.stdout
-    api_ref = PROJECT_ROOT / "output" / "docs" / "api_reference.md"
-    assert api_ref.is_file()
-    body = api_ref.read_text(encoding="utf-8")
-    assert "gradient_descent" in body.lower()
 
 
-def test_preflight_script_emits_diagnostics() -> None:
-    """00_preflight.py is aesthetic-only; exit 0 when no render mermaid, exit 1 when chrome absent."""
-    script = PROJECT_ROOT / "scripts" / "00_preflight.py"
-    result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
-    assert result.returncode in (0, 1), result.stderr or result.stdout
-    combined = f"{result.stdout}\n{result.stderr}".lower()
-    if result.returncode == 1:
-        assert any(token in combined for token in ("preflight", "puppeteer", "mmdc"))
+def test_mission_brief_runs() -> None:
+    result = _run("mission_brief.py")
+    assert result.returncode == 0, result.stderr
+    assert "ZORIN" in result.stdout
 
 
-def test_run_api_doc_generation_continues_when_glossary_index_fails(tmp_path: Path) -> None:
-    """Glossary index failure is logged; static api_reference.md still written."""
-    repo_root = PROJECT_ROOT.parent.parent
-    src_path = str(PROJECT_ROOT / "src")
-    for path in (str(repo_root), src_path):
-        if path not in sys.path:
-            sys.path.insert(0, path)
+def test_mission_recon_runs_with_default_goal() -> None:
+    result = _run("mission_recon.py")
+    assert result.returncode == 0, result.stderr
+    assert "Recon report" in result.stdout
 
-    scripts_dir = str(PROJECT_ROOT / "scripts")
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
-    import generate_api_docs as api_docs_mod
 
-    def _fail(_src: str) -> list:
-        raise ValueError("glossary index unavailable")
+def test_mission_recon_runs_with_custom_goal() -> None:
+    result = _run("mission_recon.py", "locate the flooding adit")
+    assert result.returncode == 0, result.stderr
+    assert "locate the flooding adit" in result.stdout
 
-    project_root = tmp_path
-    (project_root / "src").mkdir()
-    result = api_docs_mod.run_api_doc_generation(project_root, api_index_builder=_fail)
-    assert result is not None
-    api_ref = project_root / "output" / "docs" / "api_reference.md"
-    assert api_ref.is_file()
-    assert result["glossary"] is None
-    assert result["api_reference"] == str(api_ref)
+
+def test_mission_plan_runs() -> None:
+    result = _run("mission_plan.py")
+    assert result.returncode == 0, result.stderr
+    assert "Mission plan steps" in result.stdout
+    assert "supply_chain" in result.stdout
+
+
+def test_mission_execute_runs_and_reports_metrics() -> None:
+    result = _run("mission_execute.py")
+    assert result.returncode == 0, result.stderr
+    assert "success=True" in result.stdout
+    assert "[chip]" in result.stdout and "[flood]" in result.stdout and "[race]" in result.stdout
+
+
+def test_mission_debrief_runs() -> None:
+    result = _run("mission_debrief.py")
+    assert result.returncode == 0, result.stderr
+    assert "Lessons:" in result.stdout
+
+
+def test_z_generate_writes_artifacts() -> None:
+    result = _run("z_generate_manuscript_variables.py")
+    assert result.returncode == 0, result.stderr
+    data = PROJECT_ROOT / "output" / "data" / "manuscript_variables.json"
+    assert data.is_file()
+    for figure in ("choke_points.png", "flood_curve.png", "race_cover.png"):
+        assert (PROJECT_ROOT / "output" / "figures" / figure).is_file()

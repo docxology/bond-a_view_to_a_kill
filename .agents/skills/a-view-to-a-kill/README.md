@@ -1,3 +1,4 @@
-# a-view-to-a-kill skill
+# a-view-to-a-kill skill — README
 
-> Agent skill for [`a_view_to_a_kill`](../..). Load via an AGENTS.md-aware runtime.
+In-repo Hermes skill for the PROJECT BOND film package `a_view_to_a_kill`
+(mission codename ZORIN). See `SKILL.md` for guidance, commands, and pitfalls.

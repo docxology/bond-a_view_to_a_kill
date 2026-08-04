@@ -1,60 +1,34 @@
-# Experimental Setup {#sec:experimental_setup}
+# Experimental Setup
 
-This section details the complete experimental configuration used to generate the results in this study. Every parameter value below is injected programmatically from `config.yaml` and the analysis pipeline — no value is hardcoded in the manuscript source.
+All experiments are deterministic and fully prescribed by
+`manuscript/config.yaml` (loaded through
+`src/a_view_to_a_kill/manuscript_variables.py`).
 
-## Problem Definition
+## Fixed model data
 
-The optimization target is the quadratic objective function defined in [@eq:quadratic_objective]:
+The three datasets are hard-coded, documented model parameters in the pure
+core and annotated in `data/claim_ledger.yaml`:
 
-\begin{equation}
-\label{eq:quadratic_objective}
-f(x) = \frac{1}{2} x^T A x - b^T x
-\end{equation}
+- **Supply chain** (`chip_supply_chain.py`): {{SC_NODES}} firms across four
+  stages (wafer, fabrication, assembly, distribution) with {{SC_LINKS}}
+  forward-flowing supply links; per-firm capacities fixed in the module.
+- **Mine network** (`mine_flood.py`): {{FLOOD_CHAMBERS}} chambers with
+  volume/area/elevation, {{FLOOD_TUNNELS}} tunnels with cross-sectional area;
+  total capacity {{FLOOD_TOTAL_VOLUME}} m$^3$.
+- **Race card** (`race_analytics.py`): {{RACE_RECORDS}} form records
+  ({{RACE_HORSES}} horses x 4 races) with distance, going, weight, and time.
 
-with $A = {{CONFIG_QUADRATIC_A}}$ and $b = {{CONFIG_QUADRATIC_B}}$, yielding the analytical optimum at $x^* = {{RESULT_OPTIMUM_X}}$ with $f(x^*) = {{RESULT_OPTIMUM_F}}$.
+## Simulation parameters (from `manuscript/config.yaml`)
 
-## Parameter Space
+- Flood ingress rate: {{CONFIG_FLOOD_INGRESS_RATE}} m$^3$/s, horizon
+  {{CONFIG_FLOOD_HORIZON}} s, Euler timestep 1 s, discharge coefficient 0.6.
+- Race-form EWMA halflife: {{CONFIG_RACE_HALFLIFE}} races.
+- Cover boost to Pegasus: {{CONFIG_COVER_BOOST}} speed-index units; natural
+  race-to-race variability {{CONFIG_COVER_SIGMA}}; detection threshold 1.0.
+- Mission RNG seed: 1985 (fixed; no randomness is ever drawn).
 
-The experiment systematically varies the gradient descent step size across {{CONFIG_NUM_STEP_SIZES}} values:
+## Software environment
 
-{{CONFIG_STEP_SIZES_BULLETS}}
-
-All runs start from the initial point $x_0 = {{CONFIG_INITIAL_POINT}}$ and use a convergence tolerance of $\|{\nabla f}\| < {{CONFIG_CONVERGENCE_TOL}}$ with a maximum iteration limit of $N_{\max} = {{CONFIG_MAX_ITERATIONS}}$.
-
-## Numerical Stability Grid
-
-To validate robustness, the optimizer is exercised across a grid of {{CONFIG_NUM_STABILITY_STARTS}} starting points and {{CONFIG_NUM_STABILITY_STEPS}} step sizes, producing {{CONFIG_STABILITY_CELLS}} total evaluations. This comprehensive sweep confirms that convergence is not an artifact of a narrow parameter choice. The stability metric is computed for the `{{STABILITY_FUNCTION}}` objective via `infrastructure.scientific.stability.check_numerical_stability()`.
-
-## Dimensional Scaling
-
-Performance benchmarking spans problem dimensions $d \in \{{{CONFIG_BENCHMARK_DIMS}}\}$, from the scalar case ($d = {{CONFIG_BENCHMARK_MIN_DIM}}$) to moderate dimensionality ($d = {{CONFIG_BENCHMARK_MAX_DIM}}$), using identity-Hessian quadratics to isolate algorithmic scaling from problem conditioning effects. The tracked `output/reports/performance_benchmark.json` records fixed inputs, exact objective values, and validation checks. Wall-clock timing is retained only as a runtime diagnostic because host load and hardware make microsecond values unsuitable as pinned reproducibility claims.
-
-## Computational Environment
-
-- **Python**: {{PYTHON_VERSION}}
-- **NumPy**: {{NUMPY_VERSION}}
-- **Platform**: {{PLATFORM}}
-- **Generated**: {{GENERATION_TIMESTAMP}}
-
-## Pipeline ordering
-
-Typical `a_view_to_a_kill` analysis order (see `scripts/pipeline/stage_02_analysis.py` discovery) is:
-
-1. `optimization_analysis.py` — writes `output/data/optimization_results.csv`, `output/figures/*.png`, and JSON reports under `output/reports/`.
-2. `z_generate_manuscript_variables.py` — reads the CSV and YAML, emits `output/data/manuscript_variables.json`, and writes substituted copies to `output/manuscript/` for rendering.
-3. `generate_api_docs.py` — refreshes API markdown consumed by documentation targets.
-
-PDF compilation then reads from `output/manuscript/` so that figure paths and numeric tables match the analysis that just completed.
-
-## Relation to figures
-
-| Figure ([@sec:results]) | Primary inputs |
-|--------------------|------------------|
-| Convergence trajectories | `experiment.step_sizes`, `initial_point`, `tolerance`, `max_iterations` |
-| Step-size sensitivity | Dense $\alpha$ sweep internal to `generate_step_size_sensitivity_plot()` |
-| Convergence rate | Same trajectories as above; tolerance line uses `convergence_tolerance` |
-| Complexity quad panel | One bar chart per row of `optimization_results.csv` |
-| Stability heatmap | `stability_starting_points` $\times$ `stability_step_sizes` |
-| Dimensional benchmark | `benchmark_dimensions`, fixed $\alpha=0.1$, internal tol $10^{-10}$ |
-
-This table is descriptive documentation only; it is not executed as code during the build.
+- Python {{PYTHON_VERSION}}
+- numpy, matplotlib, PyYAML; BOND-API protocol via path dependency
+- Generated {{GENERATION_TIMESTAMP}} (UTC)

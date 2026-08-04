@@ -1,25 +1,38 @@
+# experiment_plan.yaml — a_view_to_a_kill (ZORIN)
+# Declares the deterministic mission conditions for evidence validation.
+
+mission:
+  film: "a_view_to_a_kill"
+  codename: "ZORIN"
+  seed: 1985
+
 conditions:
-  - name: conservative_step
-    role: reference
-    description: "Stable gradient-descent step below the spectral bound."
-  - name: near_optimal_step
-    role: proposed
-    description: "Template-recommended step near the stable convergence region."
-  - name: aggressive_step
-    role: variant
-    description: "Stress condition near or above the stability boundary."
-metrics:
-  primary:
-    name: objective_value
-    direction: minimize
-protocol: "Run the deterministic quadratic optimization sweep with identical initialization, seeds, tolerance, and iteration cap across all declared step-size conditions."
+  supply_chain:
+    graph: "default 12-firm / 18-link reconstruction"
+    acquired_firms: ["amd_fab", "nec_fab"]
+    primary_metric: "market-wide HHI (pre => post-elimination)"
+    ablation: "acquire 0, 1, 2 fabricators; observe HHI and ZORIN fab share"
+  mine_flood:
+    network: "Main Strike, 8 chambers / 10 tunnels, 9100 m^3"
+    ingress: 10.0  # m^3/s
+    horizon: 900.0  # s
+    dt: 1.0
+    primary_metric: "flooded_fraction at horizon; water_balance_error ~ 0"
+    ablation: "single-entry candidates (adit / shaft_a / shaft_b); critical_ingress argmax"
+  race_cover:
+    records: "20 (5 horses x 4 races)"
+    halflife: 2.0
+    boost: 0.2
+    natural_sigma: 0.5
+    primary_metric: "cover_viability expected_value (win_delta vs detection_risk)"
+    ablation: "boost sweep 0.0..3.0; expected value peaks at moderate boost"
+
 expected_figures:
-  - fig:convergence_plot
-  - fig:performance_benchmark
-  - fig:step_size_sensitivity
+  - "output/figures/choke_points.png"
+  - "output/figures/flood_curve.png"
+  - "output/figures/race_cover.png"
+
 expected_tables:
-  - tbl:optimization_results
-baselines:
-  - conservative_step
-ablations:
-  - aggressive_step
+  - "results table in manuscript 03_results.md (HHI, flood fraction, cover metrics)"
+
+baseline: "deterministic mission metrics recomputed on every z_generate run"

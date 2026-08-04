@@ -1,52 +1,40 @@
 #!/usr/bin/env python3
-"""Thin orchestrator: generate and inject manuscript variables.
+"""Hydrate the ZORIN manuscript: compute tokens, resolve sections, render figures.
 
-Reads experiment config and analysis outputs, writes
-``output/data/manuscript_variables.json``, and substitutes
-``{{TOKEN}}`` markers in manuscript sections into
-``output/manuscript/`` for PDF rendering.
-
-All computation lives in ``src/manuscript_variables``;
-all injection lives in
-``infrastructure.rendering.manuscript_injection``.
-
-Exit codes:
-    0   variables written and injected successfully
-    1   unexpected error
+Strict by default (any unresolved ``{{TOKEN}}`` or missing metrics fails);
+pass ``--allow-draft`` to fall back to partial resolution.
 """
 
 from __future__ import annotations
 
-import argparse
+import json
 import sys
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_PROJECT_ROOT))
-sys.path.insert(0, str(_PROJECT_ROOT.parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))  # noqa: E402
+
+from a_view_to_a_kill import manuscript_variables as msv  # noqa: E402
+from a_view_to_a_kill.figures import render_mission_figures  # noqa: E402
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 
 
-def main() -> int:
-    """CLI entry point."""
-    parser = argparse.ArgumentParser(description="Generate manuscript variables for a_view_to_a_kill")
-    parser.add_argument(
-        "--allow-draft",
-        action="store_true",
-        help="Allow N/A fallbacks when analysis outputs are missing (non-pipeline draft mode)",
+def main(argv: list[str] | None = None) -> int:
+    args = list(argv if argv is not None else sys.argv[1:])
+    require_outputs = "--allow-draft" not in args
+
+    variables = msv.generate_variables(require_outputs=require_outputs)
+    data_dir = PACKAGE_ROOT / "output" / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "manuscript_variables.json").write_text(
+        json.dumps(variables, indent=2, sort_keys=True), encoding="utf-8"
     )
-    args = parser.parse_args()
-
-    from infrastructure.rendering.manuscript_injection import write_resolved_manuscript_tree
-    from src.manuscript_variables import generate_variables, save_variables
-
-    variables = generate_variables(
-        _PROJECT_ROOT,
-        require_analysis_outputs=not args.allow_draft,
-    )
-    out_path = _PROJECT_ROOT / "output" / "data" / "manuscript_variables.json"
-    save_variables(variables, out_path)
-    write_resolved_manuscript_tree(_PROJECT_ROOT, variables)
-    print(str(out_path))
+    msv.resolve_manuscript_tree(variables, strict=require_outputs)
+    figure_paths = render_mission_figures(PACKAGE_ROOT / "output" / "figures")
+    print(f"Resolved {len(variables)} manuscript tokens -> output/data/manuscript_variables.json")
+    print("Resolved manuscript -> output/manuscript/")
+    for path in figure_paths:
+        print(f"Figure: {path}")
     return 0
 
 
