@@ -36,9 +36,11 @@ and achieved coverage are tracked in `docs/_generated/COUNTS.md`.
 No metric in this manuscript is written by hand. Every numeral in the prose,
 tables, and captions is a double-brace variable token resolved by
 `src/a_view_to_a_kill/manuscript_variables.py`, which reads
-`manuscript/config.yaml` for the experiment parameters and calls
-`mission.run_mission_metrics()` for the computed results. Two gates keep this
-honest:
+`manuscript/config.yaml`, turns its `experiment:` block into a
+`metrics.MissionScenario`, and calls `metrics.run_mission_metrics(scenario)`
+for the computed results. It calls **`metrics`**, not `mission`: importing
+`mission` would pull in `bond_api` and break the very fallback this section
+asserts below. Five gates keep this honest:
 
 - `resolve_manuscript_tree(..., strict=True)` refuses to emit a section that
   still contains an unresolved variable token.
@@ -46,6 +48,18 @@ honest:
   fails if any token used in prose is missing from `generate_variables()`, and
   `test_strict_gate_rejects_each_empty_metric_group` proves the strict gate
   actually fires when any one metric group is empty.
+- `tests/test_metrics_scenario.py::test_every_scenario_knob_moves_a_metric`
+  fails if any `experiment:` knob is inert — i.e. if changing it in the config
+  leaves every computed token unchanged. A knob that is only echoed back as a
+  `CONFIG_*` token is a reported-but-unused parameter, and this gate is what
+  makes "prescribed by `config.yaml`" a checkable statement rather than a
+  claim.
+- `tests/test_metrics_scenario.py::test_default_scenario_matches_the_config_file`
+  pins `metrics.DEFAULT_SCENARIO` to `manuscript/config.yaml`, so the code
+  default and the config cannot drift into two answers.
+- `tests/test_claim_ledger.py` proves `data/claim_ledger.yaml` records only
+  token *names* and no frozen numerals, so the ledger cannot become a second,
+  ungated source of truth for a metric.
 
 ## Guardrails check
 

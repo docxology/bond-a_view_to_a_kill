@@ -16,7 +16,7 @@ from the pure domain core; **never hand-author a metric number**.
 | File | Role |
 |---|---|
 | `00_abstract.md` ... `99_references.md` | Prose sections (resolved/substituted) |
-| `config.yaml` | Identity + experiment parameters (source of truth) |
+| `config.yaml` | Identity + experiment parameters (source of truth; the `experiment:` block becomes a `metrics.MissionScenario` and drives the computation — `tests/test_metrics_scenario.py` fails if a knob is inert) |
 | `references.bib` | Bibliography |
 | `SYNTAX.md`, `README.md`, `AGENTS.md` | Guides (not resolved) |
 | `preamble.md` | LaTeX preamble (unused in plain render) |

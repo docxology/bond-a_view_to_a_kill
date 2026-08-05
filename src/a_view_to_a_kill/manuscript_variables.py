@@ -6,6 +6,11 @@ deterministic mission metrics computed by the pure domain core. Metrics are
 never hand-authored in prose: they flow through this module so the manuscript
 cannot drift from the code.
 
+The config's ``experiment:`` knobs are not merely echoed as ``CONFIG_*``
+tokens — they are converted to a :class:`a_view_to_a_kill.metrics.MissionScenario`
+and used to *compute* the metrics, so editing a knob moves the computed
+tokens too (``tests/test_metrics_scenario.py`` proves this end to end).
+
 This module is ``bond_api``-free: it imports the pure concept modules and
 :mod:`a_view_to_a_kill.metrics` (which is itself protocol-free), never
 :mod:`a_view_to_a_kill.mission`. That is what makes the manuscript pipeline
@@ -57,6 +62,17 @@ def _fmt(value: object, digits: int = 4) -> str:
     return str(value)
 
 
+def _join(names: object) -> str:
+    """Render a computed name list for prose; an empty set renders as ``none``.
+
+    Prose that reads "the survivors are {{TOKEN}}" must not silently render an
+    empty string when the computed set is empty — that would turn a real
+    "nobody" result into a typographic accident.
+    """
+    items = [str(name) for name in (names if isinstance(names, (list, tuple)) else [])]
+    return ", ".join(items) if items else "none"
+
+
 #: The metric groups :func:`generate_variables` requires to be populated.
 REQUIRED_METRIC_GROUPS = ("chip", "flood", "race", "acquisition", "valley", "market")
 
@@ -82,12 +98,14 @@ def generate_variables(
             (tests pass a fixed value).
         metrics: Optional pre-computed metric payload (same shape as
             :func:`a_view_to_a_kill.metrics.run_mission_metrics`). Defaults to
-            computing it live; supplying it lets the strict gate be exercised
-            against real degraded payloads without any mocking.
+            computing it live **from the config's scenario**; supplying it lets
+            the strict gate be exercised against real degraded payloads without
+            any mocking.
 
     Raises:
-        ValueError: If the config sections are malformed, a required metric
-            group is missing/empty under ``require_outputs``.
+        ValueError: If the config sections are malformed, an ``experiment:``
+            knob is missing, or a required metric group is missing/empty under
+            ``require_outputs``.
     """
     config = load_manuscript_config(config_path)
     paper = config.get("paper", {})
@@ -97,7 +115,8 @@ def generate_variables(
     if not isinstance(experiment, dict):
         raise ValueError("manuscript config 'experiment' section must be a mapping")
 
-    computed = metrics_module.run_mission_metrics() if metrics is None else metrics
+    scenario = metrics_module.scenario_from_config(experiment)
+    computed = metrics_module.run_mission_metrics(scenario) if metrics is None else metrics
     if require_outputs:
         empty = [group for group in REQUIRED_METRIC_GROUPS if not computed.get(group)]
         if empty:
@@ -141,15 +160,29 @@ def generate_variables(
         "SC_ZORIN_FAB_SHARE": _fmt(chip_m["zorin_fab_share"], 3),
         "SC_CASCADE_STARVED": _fmt(chip_m["cascade_starved_fraction"], 3),
         "SC_TOP_CHOKE": _fmt(chip_m["top_choke_points"][0][0], 0),
+        # the scenario's acquisition set and the cascade's actual removed /
+        # retained sets — emitted so prose never names a firm by hand
+        "SC_SCENARIO_ACQUIRED": _join(chip_m["scenario_acquired"]),
+        "SC_SCENARIO_ACQUIRED_COUNT": str(len(chip_m["scenario_acquired"])),
+        "SC_CASCADE_REMOVED": _join(chip_m["cascade_removed"]),
+        "SC_CASCADE_RETAINED_FABS": _join(chip_m["cascade_retained_fabs"]),
+        "SC_CASCADE_STARVED_FIRMS": _join(chip_m["cascade_starved_firms"]),
         # computed acquisition metrics
         "ACQ_BUDGET": str(acq_m["budget"]),
         "ACQ_ACQUIREABLE": ", ".join(acq_m["acquireable"]),
         "ACQ_OPTIMAL_ACQUIRED": ", ".join(acq_m["optimal_acquired"]),
         "ACQ_OPTIMAL_HHI": _fmt(acq_m["optimal_hhi"], 1),
+        "ACQ_OPTIMAL_FAB_SHARE": _fmt(acq_m["optimal_fab_share"], 3),
         "ACQ_BASELINE_HHI": _fmt(acq_m["baseline_hhi"], 1),
         "ACQ_HHI_GAIN": _fmt(acq_m["hhi_gain"], 1),
         "ACQ_GREEDY_HHI": _fmt(acq_m["greedy_hhi"], 1),
         "ACQ_REGRET": _fmt(acq_m["regret"], 1),
+        # scenario-vs-optimizer reconciliation
+        "ACQ_SCENARIO_ACQUIRED": _join(acq_m["scenario_acquired"]),
+        "ACQ_SCENARIO_SIZE": str(acq_m["scenario_size"]),
+        "ACQ_SCENARIO_HHI": _fmt(acq_m["scenario_hhi"], 1),
+        "ACQ_SCENARIO_FAB_SHARE": _fmt(acq_m["scenario_fab_share"], 3),
+        "ACQ_SCENARIO_SHORTFALL": _fmt(acq_m["scenario_shortfall"], 1),
         # computed flood metrics
         "FLOOD_CHAMBERS": str(flood_m["chambers"]),
         "FLOOD_TUNNELS": str(flood_m["tunnels"]),
@@ -162,9 +195,16 @@ def generate_variables(
         "VALLEY_FABS": str(valley_m["fabs"]),
         "VALLEY_LOSS": _fmt(valley_m["capacity_loss"], 3),
         "VALLEY_INOPERABLE": str(valley_m["inoperable"]),
-        "VALLEY_VICTIMS": ", ".join(valley_m["victims"]),
-        "VALLEY_SURVIVORS": ", ".join(valley_m["survivors"]),
+        "VALLEY_VICTIMS": _join(valley_m["victims"]),
+        "VALLEY_SURVIVORS": _join(valley_m["survivors"]),
         "VALLEY_SURVIVOR_COUNT": str(len(valley_m["survivors"])),
+        # ownership split of the flood's outcome — computed set operations, so
+        # the manuscript's "who does the flood spare" claim cannot go stale
+        "VALLEY_ACQUIRED_VICTIMS": _join(valley_m["acquired_victims"]),
+        "VALLEY_ACQUIRED_SURVIVORS": _join(valley_m["acquired_survivors"]),
+        "VALLEY_UNACQUIRED_VICTIMS": _join(valley_m["unacquired_victims"]),
+        "VALLEY_UNACQUIRED_SURVIVORS": _join(valley_m["unacquired_survivors"]),
+        "VALLEY_UNACQUIRED_SURVIVOR_COUNT": str(len(valley_m["unacquired_survivors"])),
         # computed race/cover metrics
         "RACE_HORSES": str(race_m["horses"]),
         "RACE_RECORDS": str(race_m["records"]),
@@ -186,7 +226,7 @@ def generate_variables(
         # model constants read straight off the pure core, so prose can cite
         # them without a hand-authored numeral that could silently drift
         "CORE_DISCHARGE_COEFF": _fmt(flood_module.DEFAULT_DISCHARGE, 2),
-        "CORE_EULER_DT": _fmt(metrics_module.FLOOD_PARAMS.dt, 1),
+        "CORE_EULER_DT": _fmt(metrics_module.FLOOD_DT, 1),
         "CORE_DETECTION_THRESHOLD": _fmt(race_module.DETECTION_THRESHOLD, 1),
         "CORE_PAR_SECONDS": _fmt(race_module.PAR_SECONDS_PER_FURLONG, 1),
         "CORE_BASE_WEIGHT": _fmt(race_module.BASE_WEIGHT, 0),

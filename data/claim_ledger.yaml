@@ -1,51 +1,95 @@
 # Claim ledger — a_view_to_a_kill (ZORIN)
-# Registers sourced numeric claims and their provenance. The datasets in the
-# pure core are MODEL PARAMETERS (documented, fixed, deterministic), not
-# measured field data; their role is to make the mathematics reproducible
-# and testable.
+#
+# Registers sourced claims and their PROVENANCE. It deliberately records **no
+# numeric values**: a frozen numeral here would be a second, ungated source of
+# truth for a metric, and the package's guardrail is that every number in the
+# manuscript is a computed token. Each entry therefore names the generator that
+# produces the number and the manuscript token(s) that carry it, so a reader
+# can go straight from a claim to the code that computes it.
+#
+# tests/test_claim_ledger.py enforces both halves of that: every token named
+# below must resolve in manuscript_variables.generate_variables(), and no
+# `value:` key may reappear under model_datasets or computed_metrics.
+#
+# The datasets in the pure core are MODEL PARAMETERS (documented, fixed,
+# deterministic), not measured field data; their role is to make the
+# mathematics reproducible and testable.
 
 model_datasets:
   - id: supply_chain
-    value: "12 firms, 18 links, 4 stages"
     source: "chip_supply_chain.build_default_supply_chain()"
     role: "reconstructed mid-1980s semiconductor market; capacities are model parameters"
+    tokens: [SC_NODES, SC_LINKS, CORE_STAGES]
   - id: mine_network
-    value: "8 chambers, 10 tunnels, 9100 m^3 total"
     source: "mine_flood.build_default_mine()"
     role: "fictionalized gallery geometry (Main Strike)"
+    tokens: [FLOOD_CHAMBERS, FLOOD_TUNNELS, FLOOD_TOTAL_VOLUME]
   - id: race_card
-    value: "5 horses x 4 races = 20 records"
     source: "race_analytics.FORM_TABLE"
     role: "reconstructed Epsom-style card; race times are model parameters"
+    tokens: [RACE_HORSES, RACE_RECORDS, RACE_RACES_PER_HORSE]
+  - id: valley_fabs
+    source: "valley_impact.build_default_valley()"
+    role: "surface plants above Main Strike; foundations and leakages are model parameters"
+    tokens: [VALLEY_FABS]
 
 computed_metrics:
   - id: market_hhi
-    value: "892.2 / 1528.9 (pre / post-elimination)"
     generator: "chip_supply_chain.hhi, post_elimination_hhi"
+    tokens: [SC_HHI_BEFORE, SC_HHI_AFTER]
   - id: zorin_fab_share
-    value: "0.680 (2 fabs acquired)"
     generator: "chip_supply_chain.monopoly_share"
+    tokens: [SC_ZORIN_FAB_SHARE, SC_SCENARIO_ACQUIRED, SC_SCENARIO_ACQUIRED_COUNT]
   - id: top_choke_point
-    value: "amkor (betweenness)"
     generator: "chip_supply_chain.top_choke_points"
+    tokens: [SC_TOP_CHOKE]
+  - id: cascade
+    generator: "chip_supply_chain.cascade_starved"
+    tokens: [SC_CASCADE_STARVED, SC_CASCADE_REMOVED, SC_CASCADE_RETAINED_FABS, SC_CASCADE_STARVED_FIRMS]
   - id: flood_fraction
-    value: "0.625 at horizon (Q=10, T=900)"
     generator: "mine_flood.flooded_fraction"
+    tokens: [FLOOD_FRACTION, FLOOD_VAULT_TIME, FLOOD_CRITICAL_INGRESS]
   - id: water_balance_error
-    value: "~1e-15"
     generator: "mine_flood.water_balance_error"
+    tokens: [FLOOD_WATER_BALANCE]
   - id: cover_metrics
-    value: "win_delta 0.035 / detection_risk 0.001 / expected_value 2924 (boost 0.2)"
     generator: "race_analytics.cover_viability"
+    tokens: [COVER_WIN_DELTA, COVER_DETECTION_RISK, COVER_EXPECTED_VALUE, RACE_PEGASUS_PROB]
   - id: acquisition_metrics
-    value: "optimal HHI 1741.4 vs baseline 1012.8 (budget 2, acquire intel_fab+nec_fab)"
-    generator: "acquisition.improvement / optimal_acquisition"
+    generator: "acquisition.improvement / optimal_acquisition / greedy_acquisition"
+    tokens:
+      [
+        ACQ_BUDGET,
+        ACQ_ACQUIREABLE,
+        ACQ_OPTIMAL_ACQUIRED,
+        ACQ_OPTIMAL_HHI,
+        ACQ_OPTIMAL_FAB_SHARE,
+        ACQ_BASELINE_HHI,
+        ACQ_HHI_GAIN,
+        ACQ_GREEDY_HHI,
+        ACQ_REGRET,
+      ]
+  - id: scenario_vs_optimizer
+    generator: "metrics.acquisition_metrics (scenario set scored on the optimizer's objective)"
+    role: "the film-faithful acquisition is strictly suboptimal; the shortfall is reported, not reconciled away"
+    tokens: [ACQ_SCENARIO_ACQUIRED, ACQ_SCENARIO_SIZE, ACQ_SCENARIO_HHI, ACQ_SCENARIO_FAB_SHARE, ACQ_SCENARIO_SHORTFALL]
   - id: valley_metrics
-    value: "capacity loss 0.583; victims {intel, amd, silicon_valley}_fab; survivors {zorin_fab, nec_fab}"
     generator: "valley_impact.valley_report"
+    tokens: [VALLEY_LOSS, VALLEY_INOPERABLE, VALLEY_VICTIMS, VALLEY_SURVIVORS, VALLEY_SURVIVOR_COUNT]
+  - id: valley_ownership_split
+    generator: "metrics.valley_metrics (set operations against the scenario acquisition set)"
+    role: "who the flood spares, by ownership — the basis of the results claim about the scheme's inconsistency"
+    tokens:
+      [
+        VALLEY_ACQUIRED_VICTIMS,
+        VALLEY_ACQUIRED_SURVIVORS,
+        VALLEY_UNACQUIRED_VICTIMS,
+        VALLEY_UNACQUIRED_SURVIVORS,
+        VALLEY_UNACQUIRED_SURVIVOR_COUNT,
+      ]
   - id: market_metrics
-    value: "true prob 0.248 vs implied 0.245; edge 0.0127; Kelly stake 414 (boost 0.2, overround 1.12)"
-    generator: "race_market.cover_bankroll"
+    generator: "race_market.cover_bankroll (form ratings in; honest book and boosted chance from one softmax)"
+    tokens: [MARKET_HORSE, MARKET_TRUE_PROB, MARKET_IMPLIED, MARKET_EDGE, MARKET_KELLY, MARKET_STAKE, MARKET_PROFIT]
 
 film_facts:
   - id: film_reference

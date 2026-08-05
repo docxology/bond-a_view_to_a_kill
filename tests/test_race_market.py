@@ -8,14 +8,20 @@ from a_view_to_a_kill import race_analytics as race
 from a_view_to_a_kill import race_market as mkt
 
 
-def _probs() -> dict[str, float]:
+def _ratings() -> dict[str, float]:
+    """The EWMA form ratings — what ``cover_bankroll`` documents itself as taking."""
     ratings = race.form_ratings(race.FORM_TABLE)
     return {name: hr.rating for name, hr in ratings.items()}
 
 
+def _honest_probabilities() -> dict[str, float]:
+    """The softmax win probabilities the honest book is priced off."""
+    return race.win_probabilities(_ratings())
+
+
 # ---------------------------------------------------------------- odds
 def test_market_odds_implied_sum_is_overround() -> None:
-    probs = _probs()
+    probs = _honest_probabilities()
     odds = mkt.market_odds(probs, 1.12)
     implied_total = sum(1.0 / o for o in odds.values())
     assert implied_total == pytest.approx(1.12)
@@ -30,7 +36,7 @@ def test_market_odds_higher_prob_shorter_odds() -> None:
 @pytest.mark.parametrize("overround", [1.0, 0.9, -1.0, "x"])
 def test_market_odds_rejects_bad_overround(overround: object) -> None:
     with pytest.raises(ValueError):
-        mkt.market_odds(_probs(), overround)  # type: ignore[arg-type]
+        mkt.market_odds(_ratings(), overround)  # type: ignore[arg-type]
 
 
 def test_market_odds_rejects_empty_and_negative() -> None:
@@ -77,17 +83,17 @@ def test_kelly_fraction_formula_with_edge() -> None:
 # ---------------------------------------------------------------- cover bankroll
 def test_cover_bankroll_unknown_horse_raises() -> None:
     with pytest.raises(ValueError):
-        mkt.cover_bankroll(_probs(), "ghost", 0.2, 100_000.0)
+        mkt.cover_bankroll(_ratings(), "ghost", 0.2, 100_000.0)
 
 
 @pytest.mark.parametrize("bankroll", [0.0, -100.0])
 def test_cover_bankroll_rejects_bad_bankroll(bankroll: float) -> None:
     with pytest.raises(ValueError):
-        mkt.cover_bankroll(_probs(), "Pegasus", 0.2, bankroll)
+        mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, bankroll)
 
 
 def test_cover_bankroll_boosts_true_prob_above_implied() -> None:
-    plan = mkt.cover_bankroll(_probs(), "Pegasus", 0.2, 100_000.0)
+    plan = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0)
     assert plan.true_probability > plan.market_implied_probability
     assert plan.value_edge > 0.0
     assert 0.0 <= plan.kelly_fraction < 1.0
@@ -97,11 +103,39 @@ def test_cover_bankroll_boosts_true_prob_above_implied() -> None:
 
 
 def test_cover_bankroll_no_boost_low_true_probability() -> None:
-    plan = mkt.cover_bankroll(_probs(), "Pegasus", 0.0, 100_000.0)
-    assert plan.true_probability == pytest.approx(race.win_probabilities(_probs())["Pegasus"])
+    plan = mkt.cover_bankroll(_ratings(), "Pegasus", 0.0, 100_000.0)
+    assert plan.true_probability == pytest.approx(race.win_probabilities(_ratings())["Pegasus"])
 
 
 def test_cover_bankroll_is_deterministic() -> None:
-    a = mkt.cover_bankroll(_probs(), "Pegasus", 0.2, 100_000.0)
-    b = mkt.cover_bankroll(_probs(), "Pegasus", 0.2, 100_000.0)
+    a = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0)
+    b = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0)
     assert a == b
+
+
+def test_cover_bankroll_prices_the_book_off_the_same_softmax() -> None:
+    """Both probabilities in the trade come from one model of the race.
+
+    The regression this pins: passing ratings and pricing the book by linear
+    renormalization (``rating_i / sum(ratings)``) while scoring the bet by
+    softmax gave a market-implied probability from a *different* model than
+    the true probability, so the reported edge mixed a boost effect with a
+    change of model. Here the implied probability must be exactly the horse's
+    honest softmax probability scaled by the overround.
+    """
+    overround = 1.12
+    plan = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0, overround=overround)
+    honest = _honest_probabilities()["Pegasus"]
+    assert plan.market_implied_probability == pytest.approx(honest * overround)
+    # and it is NOT the linear renormalization of the raw ratings
+    ratings = _ratings()
+    linear = ratings["Pegasus"] / sum(ratings.values())
+    assert plan.market_implied_probability != pytest.approx(linear * overround)
+
+
+def test_cover_bankroll_overround_widens_the_book_and_shrinks_the_edge() -> None:
+    """A heavier bookmaker margin means shorter odds and a smaller edge."""
+    cheap = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0, overround=1.05)
+    dear = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0, overround=1.30)
+    assert dear.market_implied_probability > cheap.market_implied_probability
+    assert dear.value_edge < cheap.value_edge

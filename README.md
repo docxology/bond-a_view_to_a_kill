@@ -30,7 +30,7 @@ problem, once as the *decision* that structure forces.
 | `valley_impact.py` | Couples the flood to the surface: water table under each fabrication plant, earliest inoperable time, fraction of valley fabricating capacity lost, victim/survivor split. |
 | `race_analytics.py` | Race-form cover analytics: going- and weight-corrected speed indices, EWMA form ratings, softmax win probabilities, signal-detection cover risk, expected value of the manipulation. |
 | `race_market.py` | Cover finance: decimal odds under a bookmaker overround, implied probability, value edge, Kelly staking, and the full cover-bankroll plan. |
-| `metrics.py` | Fixes the mission scenario (seed 1985, flood parameters, acquired firms, cover boost, bankroll) and evaluates the six models into named metric groups. Protocol-free. |
+| `metrics.py` | `MissionScenario` — the tunable knobs `manuscript/config.yaml` owns (flood parameters, race halflife, cover boost/sigma, acquisition budget and set, bankroll, overround) — plus the six metric groups, each a function of a scenario. Seed 1985 and the Euler timestep stay module constants. Protocol-free. |
 | `mission.py` | The thin BOND-API adapter: the FROZEN `MissionProvider` plus the module-level `gadget_registry`. The **only** module importing `bond_api`. |
 | `manuscript_variables.py` | Computes every manuscript token from `manuscript/config.yaml` + the live metric payload, and resolves the manuscript tree in strict mode. |
 | `figures/plots.py` | Five deterministic PNG figures: choke points, acquisition curve, flood curve, valley impact, race cover. |

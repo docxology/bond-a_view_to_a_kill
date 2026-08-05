@@ -20,8 +20,9 @@ structure forces — six pure modules in total:
 | Sabotage | `mine_flood.py` — mass-conserving head-driven Euler water-ingress simulation over a chamber/tunnel network | `valley_impact.py` — flood-to-surface coupling; water table under each fab, capacity lost, victims vs survivors |
 | Cover | `race_analytics.py` — normalized speed indices, EWMA form ratings, softmax win probabilities, signal-detection risk | `race_market.py` — decimal odds under an overround, value edge, Kelly staking, cover-bankroll plan |
 
-`metrics.py` fixes the mission scenario and evaluates all six models into named
-metric groups. `mission.py` wraps those groups in the FROZEN
+`metrics.py` defines `MissionScenario` — the knobs `manuscript/config.yaml`
+owns — and evaluates all six models against a scenario into named metric
+groups; every knob must move a group (`tests/test_metrics_scenario.py`). `mission.py` wraps those groups in the FROZEN
 `bond_api.MissionProvider` protocol and is the **only** module that imports
 `bond_api`.
 

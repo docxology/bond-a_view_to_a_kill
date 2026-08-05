@@ -1,8 +1,12 @@
 # Experimental Setup
 
 All experiments are deterministic and fully prescribed by
-`manuscript/config.yaml` (loaded through
-`src/a_view_to_a_kill/manuscript_variables.py`).
+`manuscript/config.yaml`, whose `experiment:` block is loaded by
+`src/a_view_to_a_kill/manuscript_variables.py`, converted to a
+`metrics.MissionScenario`, and threaded into the models that produce every
+computed token below. Editing a knob here changes the results, not only the
+echo of the file — `tests/test_metrics_scenario.py` fails if any knob is
+inert.
 
 ## Fixed model data
 
@@ -42,6 +46,8 @@ surfaced here as computed tokens, so neither can drift from the code.
   race-to-race variability {{CONFIG_COVER_SIGMA}}; detection threshold
   {{CORE_DETECTION_THRESHOLD}}.
 - Acquisition budget: {{CONFIG_ACQUISITION_BUDGET}} independent fabricators.
+- Scenario acquisition set (what ZORIN actually buys, distinct from the
+  optimizer's answer): `{{SC_SCENARIO_ACQUIRED}}`.
 - Cover betting bankroll: {{CONFIG_COVER_BANKROLL}} USD; bookmaker overround
   {{CONFIG_MARKET_OVERROUND}}.
 - Mission RNG seed: {{CORE_MISSION_SEED}} (fixed; no randomness is ever drawn).

@@ -39,9 +39,12 @@ metadata:
   language: "en"
   mission_codename: "ZORIN"
 
-# Deterministic mission experiment parameters. These seed the pure core
-# computations surfaced by manuscript_variables.py; change them here and the
-# manuscript tokens update on the next regeneration.
+# Deterministic mission experiment parameters. These are turned into a
+# metrics.MissionScenario by metrics.scenario_from_config() and threaded into
+# the pure models, so changing a knob here changes the *computed* tokens, not
+# just the CONFIG_* echo of this file. tests/test_metrics_scenario.py pins
+# every knob to a computed metric it must move, so an inert knob fails the
+# suite.
 experiment:
   # Microchip supply graph is fixed in src/a_view_to_a_kill/chip_supply_chain.py.
   # Flood scenario: total ingress rate (m^3/s) into the entry chambers, and
@@ -59,6 +62,10 @@ experiment:
   acquisition_budget: 2
   cover_bankroll: 100000.0
   market_overround: 1.12
+  # The firms the film-faithful ZORIN scenario actually acquires. This is a
+  # *scenario* choice, not the optimizer's answer — the manuscript reconciles
+  # the two explicitly (see 03_results "Scenario versus optimizer").
+  scenario_acquired_firms: ["amd_fab", "nec_fab"]
 
 testing:
   max_test_failures: 0

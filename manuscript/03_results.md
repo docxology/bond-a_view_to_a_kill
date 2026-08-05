@@ -13,19 +13,21 @@ Table: Supply-chain concentration under the ZORIN attack.
 |---|---|
 | Firms / supply links | {{SC_NODES}} / {{SC_LINKS}} |
 | Market-wide HHI (pre-attack) | {{SC_HHI_BEFORE}} |
-| Market-wide HHI (post-elimination, 2 fabs acquired) | {{SC_HHI_AFTER}} |
+| Market-wide HHI (post-elimination, {{SC_SCENARIO_ACQUIRED_COUNT}} fabs acquired: `{{SC_SCENARIO_ACQUIRED}}`) | {{SC_HHI_AFTER}} |
 | ZORIN fabrication capacity share | {{SC_ZORIN_FAB_SHARE}} |
 | Top choke point (betweenness) | {{SC_TOP_CHOKE}} |
-| Starved fraction when independent fabs removed | {{SC_CASCADE_STARVED}} |
+| Starved fraction when the acquired fabs are dismantled (`{{SC_CASCADE_REMOVED}}`) | {{SC_CASCADE_STARVED}} |
 
-Acquiring `amd_fab` and `nec_fab` lifts market concentration from
+Acquiring `{{SC_SCENARIO_ACQUIRED}}` lifts market concentration from
 HHI {{SC_HHI_BEFORE}} to {{SC_HHI_AFTER}} and hands ZORIN
 {{SC_ZORIN_FAB_SHARE}} of fabrication capacity — a decisive corner on the
-market. Because the surviving (acquired) fabricators still supply the
-assembly stage, the cascade starves nothing downstream
-(starved fraction {{SC_CASCADE_STARVED}}), exactly the monopolist's intent:
-competitors are *removed*, but the market ZORIN owns keeps flowing
-([@fig:choke_points]).
+market. The cascade model removes exactly the acquired-and-dismantled firms
+(`{{SC_CASCADE_REMOVED}}`); the fabricators left standing
+(`{{SC_CASCADE_RETAINED_FABS}}`) still carry wafer supply through to every
+assembly house, so nothing downstream is starved (starved fraction
+{{SC_CASCADE_STARVED}}, starved firms: {{SC_CASCADE_STARVED_FIRMS}}). That is
+the monopolist's intent: competitors are *removed*, but the market ZORIN owns
+keeps flowing ([@fig:choke_points]).
 
 ## Flood-the-mine water ingress
 
@@ -73,7 +75,27 @@ The exhaustive optimum ([@fig:acquisition_curve]) lifts concentration from
 {{ACQ_BASELINE_HHI}} to {{ACQ_OPTIMAL_HHI}} with just {{ACQ_BUDGET}}
 acquisitions; on this graph greedy matches the optimum (regret
 {{ACQ_REGRET}}), so the naive strategy is not the failure mode here — the
-headline is the *scale* of the concentration a two-firm buy achieves.
+headline is the *scale* of the concentration a {{ACQ_BUDGET}}-firm buy
+achieves.
+
+### Scenario versus optimizer
+
+The scenario ZORIN actually executes and the answer this package's optimizer
+returns are **not the same set**, and the difference is a result, not an
+oversight. The film-faithful scenario buys `{{ACQ_SCENARIO_ACQUIRED}}`
+({{ACQ_SCENARIO_SIZE}} firms), scoring HHI {{ACQ_SCENARIO_HHI}} and a
+fabrication share of {{ACQ_SCENARIO_FAB_SHARE}}. On the same objective and the
+same budget, the exhaustive optimum is `{{ACQ_OPTIMAL_ACQUIRED}}` at
+{{ACQ_OPTIMAL_HHI}} and a share of {{ACQ_OPTIMAL_FAB_SHARE}}. The scenario is
+therefore strictly suboptimal by {{ACQ_SCENARIO_SHORTFALL}} HHI points.
+
+We report this rather than reconcile it away. The package makes **no claim
+that ZORIN's acquisition is optimal**; every scenario-conditioned number in
+this manuscript (the HHI, share, cascade, and valley results above) is
+conditioned on the acquisition set fixed in `manuscript/config.yaml`, not on
+the optimizer's answer. The optimizer's role is to bound what the same market
+would have permitted — and the bound says the scheme leaves
+{{ACQ_SCENARIO_SHORTFALL}} points of concentration on the table.
 
 ## Valley impact
 
@@ -88,6 +110,10 @@ Table: Urban blast-reach of the flood at the decision horizon.
 | Inoperable fabs | {{VALLEY_INOPERABLE}} |
 | Victims | {{VALLEY_VICTIMS}} |
 | Survivors | {{VALLEY_SURVIVORS}} |
+| Survivors ZORIN acquires | {{VALLEY_ACQUIRED_SURVIVORS}} |
+| Survivors ZORIN neither owns nor acquires | {{VALLEY_UNACQUIRED_SURVIVORS}} |
+| Victims ZORIN acquires | {{VALLEY_ACQUIRED_VICTIMS}} |
+| Victims ZORIN neither owns nor acquires | {{VALLEY_UNACQUIRED_VICTIMS}} |
 
 By the horizon the flood's groundwater reach has disabled {{VALLEY_INOPERABLE}}
 of {{VALLEY_FABS}} valley fabrication plants — {{VALLEY_LOSS}} of total
@@ -97,11 +123,23 @@ fabricating capacity ([@fig:valley_impact]) — leaving
 protected from the very flood he releases.
 
 The victim list (`{{VALLEY_VICTIMS}}`) is the more interesting result, because
-it cuts across ownership. Coupling geometry alone decides who drowns, so a
-plant ZORIN acquires can be destroyed by his own sabotage while an unacquired
-rival survives. The model therefore contradicts the scheme's own premise: the
-flood is not a precision instrument against competitors, and the acquisition
-plan and the sabotage plan are not automatically consistent with each other.
+coupling geometry alone decides who drowns. The split by ownership is one-sided.
+On the losing side the flood is *not* discriminating: `{{VALLEY_ACQUIRED_VICTIMS}}`
+is destroyed even though ZORIN buys it, alongside the plants he never
+acquires (`{{VALLEY_UNACQUIRED_VICTIMS}}`). On the surviving side it is
+entirely discriminating: the survivors are ZORIN's own plant plus
+`{{VALLEY_ACQUIRED_SURVIVORS}}`, which he acquires, and the number of
+surviving plants he neither owns nor acquires is
+{{VALLEY_UNACQUIRED_SURVIVOR_COUNT}}
+(`{{VALLEY_UNACQUIRED_SURVIVORS}}`). So the model contradicts the scheme's own
+premise in exactly one direction: the flood spares no rival, but it does
+destroy an asset ZORIN pays for — the acquisition plan and the sabotage plan
+are not automatically consistent with each other.
+
+Both directions of that claim are computed set operations
+(`valley_metrics`), and `tests/test_manuscript_variables.py::test_valley_ownership_split_matches_the_manuscript_claim`
+fails if either one stops holding, so this paragraph cannot outlive the data
+it describes.
 
 ## Cover finance
 
@@ -118,9 +156,12 @@ overround book. Table: cover-bankroll plan for `{{MARKET_HORSE}}`.
 | Kelly stake (USD) | {{MARKET_STAKE}} |
 | Expected profit (USD) | {{MARKET_PROFIT}} |
 
-The manipulated horse's true probability ({{MARKET_TRUE_PROB}}) sits just
-above the market-implied ({{MARKET_IMPLIED}}), a narrow but positive edge
-({{MARKET_EDGE}}) that justifies a Kelly stake of {{MARKET_STAKE}}. That a
-single horse's true chance so precisely exceeds the honest market's price is
-exactly the statistical anomaly the cover-risk model would flag — the cover
-is profitable only while it stays undetectable.
+The manipulated horse's true probability ({{MARKET_TRUE_PROB}}) exceeds the
+market-implied ({{MARKET_IMPLIED}}) by an edge of {{MARKET_EDGE}} per unit
+staked, which justifies a Kelly stake of {{MARKET_STAKE}} against the
+{{CONFIG_COVER_BANKROLL}} bankroll. Both probabilities come from the *same*
+softmax over form ratings — the honest book prices the un-boosted ratings and
+the true chance prices the boosted ones — so the edge measures the boost and
+nothing else. That a single horse's true chance exceeds the honest market's
+price is exactly the statistical anomaly the cover-risk model would flag: the
+cover is profitable only while it stays undetectable.

@@ -31,6 +31,10 @@ experiment:
   race_halflife: 2.0
   cover_boost: 0.2
   cover_sigma: 0.5
+  acquisition_budget: 2
+  cover_bankroll: 100000.0
+  market_overround: 1.12
+  scenario_acquired_firms: ["amd_fab", "nec_fab"]
 
 testing:
   max_test_failures: 0

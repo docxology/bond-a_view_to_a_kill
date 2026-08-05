@@ -14,10 +14,14 @@ central scheme through six pure, infrastructure-free domain modules:
    attack.
 2. **Monopoly acquisition optimizer** (`acquisition.py`) — the budgeted
    selection problem of which independent fabricators ZORIN buys to corner
-   the market. Exhaustive search for the optimal acquisition raises
-   market-wide HHI from a {{ACQ_BASELINE_HHI}} baseline to
-   {{ACQ_OPTIMAL_HHI}} with a budget of {{ACQ_BUDGET}}, a gain of
-   {{ACQ_HHI_GAIN}}.
+   the market. Exhaustive search for the optimal acquisition
+   (`{{ACQ_OPTIMAL_ACQUIRED}}`) raises market-wide HHI from a
+   {{ACQ_BASELINE_HHI}} baseline to {{ACQ_OPTIMAL_HHI}} with a budget of
+   {{ACQ_BUDGET}}, a gain of {{ACQ_HHI_GAIN}}. The set the film-faithful
+   scenario buys (`{{ACQ_SCENARIO_ACQUIRED}}`) is a different set scoring
+   {{ACQ_SCENARIO_HHI}}; the scheme is suboptimal by
+   {{ACQ_SCENARIO_SHORTFALL}} HHI points, and we report that rather than
+   claim optimality for it.
 3. **Flood-the-mine water-ingress dynamics** (`mine_flood.py`) — a
    mass-conserving deterministic Euler simulation of water flowing through
    the {{FLOOD_CHAMBERS}}-chamber "Main Strike" network, flooding
@@ -27,9 +31,12 @@ central scheme through six pure, infrastructure-free domain modules:
    flood to the fabs above: rising groundwater disables
    {{VALLEY_INOPERABLE}} of {{VALLEY_FABS}} valley fabs, {{VALLEY_LOSS}} of
    fabricating capacity. ZORIN's own plant is among the
-   {{VALLEY_SURVIVOR_COUNT}} survivors (`{{VALLEY_SURVIVORS}}`) — but so is one
-   rival, and one plant ZORIN acquires is destroyed, so the sabotage is a
-   blunter instrument than the scheme assumes.
+   {{VALLEY_SURVIVOR_COUNT}} survivors (`{{VALLEY_SURVIVORS}}`); the other
+   survivor is `{{VALLEY_ACQUIRED_SURVIVORS}}`, which he acquires, so the
+   number of surviving plants he neither owns nor acquires is
+   {{VALLEY_UNACQUIRED_SURVIVOR_COUNT}}. The bluntness runs the other way:
+   `{{VALLEY_ACQUIRED_VICTIMS}}`, a plant ZORIN buys, is destroyed by his own
+   flood.
 5. **Horse-race form analytics** (`race_analytics.py`) — normalized speed
    indices, EWMA ratings, softmax win probabilities, and a
    signal-detection cover-risk model. A subtle {{CONFIG_COVER_BOOST}}
@@ -37,7 +44,7 @@ central scheme through six pure, infrastructure-free domain modules:
    detection risk (expected value {{COVER_EXPECTED_VALUE}}); a blatant boost
    is caught.
 6. **Racing betting-market / cover-finance** (`race_market.py`) — converts
-   win probabilities to honest-market decimal odds under a
+   the softmax win probabilities to honest-market decimal odds under a
    {{CONFIG_MARKET_OVERROUND}} overround, and prices the cover: Pegasus's
    boosted true probability ({{MARKET_TRUE_PROB}}) exceeds the market-implied
    ({{MARKET_IMPLIED}}), yielding a positive value edge ({{MARKET_EDGE}}) and

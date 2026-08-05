@@ -61,8 +61,9 @@ If coverage drops, fix the gap — do not delete tests.
   `mine_flood.py`, `valley_impact.py`, `race_analytics.py`, `race_market.py`)
   contain **all** mathematics: no file I/O, no `bond_api`, no `infrastructure`,
   no randomness, no wall clock.
-- `metrics.py` holds the mission scenario constants and evaluates the core into
-  six named metric groups. It is protocol-free.
+- `metrics.py` defines `MissionScenario` (the knobs `manuscript/config.yaml`
+  owns) and evaluates the core into six named metric groups, each a function of
+  a scenario. It is protocol-free.
 - `mission.py` is the **only** module that imports `bond_api`. It adapts the
   metric groups to the FROZEN `MissionProvider` and registers gadgets.
 - `manuscript_variables.py` and `figures/plots.py` depend on `metrics.py`,
@@ -116,6 +117,17 @@ detection threshold, par pace, seed) — they are surfaced as `CORE_*` tokens
 precisely so prose cannot drift from the code. To add a number: add the key to
 `generate_variables()`, reference the token in prose, and the cross-reference
 test verifies it.
+
+Two corollaries, both gated:
+
+- **`data/claim_ledger.yaml` is not an exception.** It records generators and
+  token names, never numerals; `tests/test_claim_ledger.py` fails on any
+  `value:` key under `model_datasets` or `computed_metrics`. A ledger numeral
+  is a second source of truth that nothing checks.
+- **Scenario-dependent identifiers are numbers too.** Firm names that come from
+  `experiment.scenario_acquired_firms` must reach prose as tokens
+  (`{{SC_SCENARIO_ACQUIRED}}` and siblings), not as literals —
+  `test_scenario_acquisition_names_are_never_hand_written_in_prose` enforces it.
 
 ---
 

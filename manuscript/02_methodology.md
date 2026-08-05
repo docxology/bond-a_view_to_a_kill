@@ -50,16 +50,20 @@ competitors), a downstream firm is *starved* if it has no directed supply path
 from any surviving wafer supplier — a standard reachability construction on
 the supply digraph [@ast], and the mechanism the resilience literature calls
 upstream disruption propagation [@christopher2004]. The starved fraction is
-$\sum_{v \in S} 1 / |V|$.
+$\sum_{v \in S} 1 / |V|$. In the reported scenario $R$ is exactly the acquired
+set `{{SC_CASCADE_REMOVED}}`; the fabricators that remain in the graph after
+that removal are `{{SC_CASCADE_RETAINED_FABS}}`.
 
 **The ZORIN attack.** ZORIN owns `zorin_fab` and `zorin_assembly`; by
-acquiring the independent fabricators `amd_fab` and `nec_fab` and eliminating
-the rest of the market, his fabrication share rises to
+acquiring the independent fabricators `{{SC_SCENARIO_ACQUIRED}}` and
+eliminating the rest of the market, his fabrication share rises to
 ${{SC_ZORIN_FAB_SHARE}}$ and market-wide HHI jumps to ${{SC_HHI_AFTER}}$.
 Formally, `monopoly_share` computes ZORIN's surviving capacity share per
 stage once every non-acquired independent is removed, and
 `post_elimination_hhi` merges ZORIN's holdings into one entity before
-recomputing concentration.
+recomputing concentration. This acquisition set is a *scenario* input
+(`manuscript/config.yaml`), not the optimizer's output; Section
+[@sec:results] reports how far apart the two are.
 
 ## Flood-the-mine water-ingress dynamics
 
@@ -132,7 +136,11 @@ the exhaustive search is optimal, $\mathrm{greedy} \le \mathrm{optimal}$
 always; with the default budget of {{ACQ_BUDGET}} the optimal acquisition
 (`{{ACQ_OPTIMAL_ACQUIRED}}`) lifts HHI from {{ACQ_BASELINE_HHI}} to
 {{ACQ_OPTIMAL_HHI}}, a gain of {{ACQ_HHI_GAIN}} over buying nothing, while the
-greedy baseline reaches {{ACQ_GREEDY_HHI}} (regret {{ACQ_REGRET}}).
+greedy baseline reaches {{ACQ_GREEDY_HHI}} (regret {{ACQ_REGRET}}). The same
+optimality argument bounds the *scenario* acquisition
+(`{{ACQ_SCENARIO_ACQUIRED}}`) from above, which is how Section [@sec:results]
+scores the scheme's shortfall; the optimizer is a bound on the scenario, not a
+description of it.
 
 ## Valley impact — the flood's urban blast-reach
 
@@ -152,19 +160,27 @@ of {{VALLEY_FABS}} fabs ({{VALLEY_LOSS}} of capacity) by the horizon
 (see [@fig:valley_impact]). The {{VALLEY_SURVIVOR_COUNT}} survivors are
 `{{VALLEY_SURVIVORS}}`: `zorin_fab` endures because it sits over the
 low-coupling, high-separation `shaft_a`, which is the outcome the scheme
-intends. The model does not, however, reproduce a clean rivals-only wipeout —
-the survivor and victim sets are determined purely by coupling geometry, not
-by ownership.
+intends. The survivor and victim sets are determined purely by coupling
+geometry, not by ownership, and the two directions come out differently: no
+plant outside ZORIN's control survives
+({{VALLEY_UNACQUIRED_SURVIVOR_COUNT}} such survivors), but
+`{{VALLEY_ACQUIRED_VICTIMS}}` — a plant he acquires — is destroyed anyway.
 
 ## Racing betting market and cover finance
 
-The cover is financed by betting on the controlled horse. `market_odds`
-converts true win probabilities into decimal odds under a bookmaker overround
-$\nu = {{CONFIG_MARKET_OVERROUND}}$ — the standard way an outcome model is
-priced against a book [@dixon] — so the market's implied probabilities sum
-to $\nu$: $q_i = p_i \nu$, $\mathrm{odds}_i = 1/q_i$. Against that *honest*
-book, `cover_bankroll` prices the manipulated horse using its boosted true
-probability $p^\ast$: the value edge is $p^\ast \mathrm{odds} - 1$, the
+The cover is financed by betting on the controlled horse. `cover_bankroll`
+takes the EWMA **form ratings** (a boost is in speed-index units, so it can
+only be applied to a rating) and derives both sides of the trade from the same
+softmax. The honest book is priced off the *un-boosted* win probabilities
+$p_i = \mathrm{softmax}(r)_i$: `market_odds` converts them into decimal odds
+under a bookmaker overround $\nu = {{CONFIG_MARKET_OVERROUND}}$ — the standard
+way an outcome model is priced against a book [@dixon] — so the market's
+implied probabilities sum to $\nu$: $q_i = p_i \nu$,
+$\mathrm{odds}_i = 1/q_i$. Against that *honest* book, `cover_bankroll` prices
+the manipulated horse using its boosted true probability
+$p^\ast = \mathrm{softmax}(r + b e_{\text{Pegasus}})_{\text{Pegasus}}$, so the
+edge measures the boost rather than a change of probability model: the value
+edge is $p^\ast \mathrm{odds} - 1$, the
 Kelly-optimal stake fraction is
 $(p^\ast \mathrm{odds} - 1)/(\mathrm{odds} - 1)$ when positive, and the
 expected profit is the edge times the staked bankroll. For Pegasus under a

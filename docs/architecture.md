@@ -93,27 +93,51 @@ trades win-probability gain against that risk in expected value.
 
 ### `race_market.py` — the cover's finance
 
-`market_odds` prices honest decimal odds under a bookmaker overround;
-`implied_probability`, `value_edge`, and `kelly_fraction` form the standard
-bet-sizing chain; `cover_bankroll` assembles the full `CoverPlan` for the
-boosted horse — its boosted true probability against the *un-boosted* market,
-the value edge, the Kelly stake capped at the bankroll, and the expected
+`market_odds` prices honest decimal odds from win **probabilities** under a
+bookmaker overround; `implied_probability`, `value_edge`, and `kelly_fraction`
+form the standard bet-sizing chain; `cover_bankroll` takes the EWMA **form
+ratings** (a boost is in speed-index units, so it can only be applied to a
+rating) and derives *both* sides of the trade from one softmax — the honest
+book from `win_probabilities(ratings)`, the true chance from
+`manipulated_probabilities(ratings, ...)`. That symmetry is load-bearing:
+pricing the book by a linear renormalization of ratings while scoring the bet
+by softmax makes the reported edge a mix of the boost and a change of model.
+`test_cover_bankroll_prices_the_book_off_the_same_softmax` pins it.
+`cover_bankroll` assembles the full `CoverPlan` for the boosted horse — the
+boosted true probability against the *un-boosted* market, the value edge, the
+Kelly stake capped at the bankroll, and the expected
 profit.
 
 ### `metrics.py` — the mission scenario
 
-Holds the scenario constants (`SEED`, `FLOOD_PARAMS`, `ACQUIRED_FIRMS`,
-`COVER_BOOST`, `COVER_SIGMA`, `ACQUISITION_BUDGET`, `COVER_BANKROLL`,
-`PACKAGE_VERSION`) and one function per concept — `chip_metrics`,
-`flood_metrics`, `race_metrics`, `acquisition_metrics`, `valley_metrics`,
-`market_metrics` — aggregated by `run_mission_metrics()` into the six-group
-payload. It imports no protocol types, which is what makes the `bond_api`
-fallback real rather than aspirational.
+Defines `MissionScenario`, the frozen dataclass of tunable knobs
+(`flood_ingress_rate`, `flood_horizon`, `race_halflife`, `cover_boost`,
+`cover_sigma`, `acquisition_budget`, `cover_bankroll`, `market_overround`,
+`acquired_firms`), plus `scenario_from_config()` which builds one from a
+config `experiment:` block and `DEFAULT_SCENARIO` which is pinned equal to
+`manuscript/config.yaml` by `tests/test_metrics_scenario.py`. The legacy
+constants `FLOOD_PARAMS`, `ACQUIRED_FIRMS`, `COVER_BOOST`, `COVER_SIGMA`,
+`ACQUISITION_BUDGET`, `COVER_BANKROLL` are views on `DEFAULT_SCENARIO`, not
+independent values.
+
+Each concept function — `chip_metrics`, `flood_metrics`, `race_metrics`,
+`acquisition_metrics`, `valley_metrics`, `market_metrics` — takes a scenario
+and is aggregated by `run_mission_metrics(scenario)` into the six-group
+payload. **Every knob must reach a metric group**: an unused knob would be a
+reported-but-inert parameter, so `test_every_scenario_knob_moves_a_metric`
+perturbs each one and requires the named groups to respond. `metrics.py`
+imports no protocol types, which is what makes the `bond_api` fallback real
+rather than aspirational.
+
+`SEED` and `FLOOD_DT` stay module constants: they are properties of the
+numerical scheme, not scenario choices, and surface as `CORE_*` tokens.
 
 ### `manuscript_variables.py` and `figures/plots.py`
 
-`generate_variables()` merges `manuscript/config.yaml` with the live metric
-payload into the token map; `resolve_manuscript_tree()` substitutes those
+`generate_variables()` reads `manuscript/config.yaml`, converts its
+`experiment:` block to a `MissionScenario`, computes the metrics **from that
+scenario**, and merges the two into the token map; `resolve_manuscript_tree()`
+substitutes those
 tokens into every `NN_*.md` section and refuses (in strict mode) to emit a file
 that still contains an unresolved token. `figures/plots.py` renders five
 deterministic PNGs — `choke_points`, `acquisition_curve`, `flood_curve`,

@@ -15,7 +15,7 @@ before touching a test.
 | Surface | Rule |
 |---|---|
 | `src/a_view_to_a_kill/{chip_supply_chain,acquisition,mine_flood,valley_impact,race_analytics,race_market}.py` (pure core) | All mathematics; **no** `bond_api`, **no** `infrastructure`, no I/O, no RNG, no wall clock |
-| `src/a_view_to_a_kill/metrics.py` | Mission scenario constants + the six metric groups; protocol-free |
+| `src/a_view_to_a_kill/metrics.py` | `MissionScenario` (the config's knobs) + the six metric groups, each a function of a scenario; protocol-free |
 | `src/a_view_to_a_kill/mission.py` | The **only** `bond_api` importer; FROZEN `MissionProvider` + `gadget_registry` |
 | `src/a_view_to_a_kill/manuscript_variables.py`, `figures/` | Depend on `metrics.py`, never `mission.py`; metrics computed, never authored; deterministic plots |
 | `scripts/` | Thin CLIs (bootstrap `sys.path`, call `src`, print); no business logic |
@@ -76,7 +76,14 @@ git status --short                                         # clean after a path-
   core imports without it.
 - The `MissionProvider` surface (`brief`/`recon`/`plan`/`execute`/`debrief`)
   and `gadget_registry` are FROZEN — the fleet consumes them.
-- No hand-authored metric in the manuscript; every number is a token.
+- No hand-authored metric in the manuscript; every number is a token. This
+  covers `data/claim_ledger.yaml` too — it records generators and token names,
+  never numerals (`tests/test_claim_ledger.py`).
+- Every `experiment:` knob in `manuscript/config.yaml` must reach a computed
+  metric. A knob that is only echoed back as a `CONFIG_*` token is a
+  reported-but-unused parameter; `tests/test_metrics_scenario.py` fails on it.
+- Scenario-dependent firm names reach the page as tokens, never as literals
+  (`test_scenario_acquisition_names_are_never_hand_written_in_prose`).
 - No leftover template-scaffold lineage strings (the verification `rg` gate
   uses a bracket-split pattern so this doc cannot trip its own gate).
 

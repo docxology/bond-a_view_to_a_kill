@@ -14,7 +14,10 @@ deterministic finance problem:
   bankroll to stake when the bettor holds a true edge.
 * :func:`cover_bankroll` — the full cover-finance plan for one boosted horse:
   true probability after a crafted boost, market-implied probability, the
-  value edge, the Kelly stake in dollars, and the expected profit.
+  value edge, the Kelly stake in dollars, and the expected profit. It takes
+  **form ratings**, not probabilities (a boost is in speed-index units), and
+  derives both the honest book and the boosted true chance from the same
+  softmax, so the two probabilities being compared are commensurable.
 
 By coupling the boosted (manipulated) win probability with the *honest*
 market odds, the model exposes precisely the asymmetry ZORIN exploits: a
@@ -132,7 +135,7 @@ def kelly_fraction(true_probability: float, odds: float) -> float:
 
 
 def cover_bankroll(
-    probabilities: dict[str, float],
+    ratings: dict[str, float],
     boosted: str,
     boost: float,
     bankroll: float,
@@ -140,25 +143,34 @@ def cover_bankroll(
 ) -> CoverPlan:
     """The cover-finance plan for ``boosted`` after a performance ``boost``.
 
-    The true win probability is the softmax over *boosted* ratings; the market
-    is built on the *honest* (un-boosted) probabilities — the asymmetry ZORIN
-    exploits. Returns a :class:`CoverPlan` with the Kelly stake (in dollars,
-    capped at the bankroll) and the expected profit.
+    ``ratings`` are the EWMA **form ratings** (speed-index units) produced by
+    :func:`a_view_to_a_kill.race_analytics.form_ratings`, *not* probabilities:
+    a ``boost`` is measured in the same speed-index units, so it can only be
+    applied to a rating. Both sides of the comparison then come from the same
+    probability model — the honest book is priced off
+    ``win_probabilities(ratings)`` and the true chance is
+    ``manipulated_probabilities(ratings, boosted, boost)``, which is the
+    asymmetry ZORIN exploits. Returns a :class:`CoverPlan` with the Kelly stake
+    (in dollars, capped at the bankroll) and the expected profit.
+
+    Passing probabilities here instead of ratings would price the book off a
+    linear renormalization while scoring the bet off a softmax — two different
+    models of the same race, and a silently wrong edge.
     """
     if not isinstance(bankroll, (int, float)) or isinstance(bankroll, bool):
         raise ValueError("bankroll must be a number")
     if bankroll <= 0:
         raise ValueError("bankroll must be positive")
-    if boosted not in probabilities:
+    if boosted not in ratings:
         raise ValueError(f"unknown horse {boosted!r}")
 
     # true probabilities incorporate the craft-bought boost
-    true_probs = probabilities
-    boosted_probs = race.manipulated_probabilities(true_probs, boosted, boost)
+    boosted_probs = race.manipulated_probabilities(ratings, boosted, boost)
     true_p = float(boosted_probs[boosted])
 
-    # market is the honest, un-boosted book
-    odds_map = market_odds(probabilities, overround)
+    # market is the honest, un-boosted book, priced off the same softmax
+    honest_probs = race.win_probabilities(ratings)
+    odds_map = market_odds(honest_probs, overround)
     odds = odds_map[boosted]
     implied = implied_probability(odds)
     edge = value_edge(true_p, odds)

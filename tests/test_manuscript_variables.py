@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from a_view_to_a_kill import manuscript_variables as msv
+from a_view_to_a_kill import metrics
 from a_view_to_a_kill import mission
 from a_view_to_a_kill import race_analytics as race
 
@@ -171,5 +172,77 @@ def test_config_has_expected_experiment_keys() -> None:
         "acquisition_budget",
         "cover_bankroll",
         "market_overround",
+        "scenario_acquired_firms",
     ):
         assert key in exp
+
+
+def test_valley_ownership_split_matches_the_manuscript_claim() -> None:
+    """Bind the results claim about *who the flood spares* to the computation.
+
+    `03_results.md` states, in both directions, that the flood spares no plant
+    outside ZORIN's control while destroying one he acquires. Both halves are
+    computed set operations; this test recomputes them from the metric layer
+    and fails the moment either stops holding, so the paragraph cannot outlive
+    its data. (The prior text claimed "an unacquired rival survives", which
+    the computed survivor set never supported.)
+    """
+    # Bind to the *config's* scenario, which is what hydrates the manuscript.
+    config = yaml.safe_load((MANUSCRIPT / "config.yaml").read_text(encoding="utf-8"))
+    scenario = metrics.scenario_from_config(config["experiment"])
+    valley_m = metrics.valley_metrics(scenario)
+    acquired = set(scenario.acquired_firms)
+    victims = set(valley_m["victims"])
+    survivors = set(valley_m["survivors"])
+
+    # the sets are a real partition of the modelled fabs
+    assert victims and survivors
+    assert not victims & survivors
+    assert len(victims | survivors) == valley_m["fabs"]
+
+    # the split reported in the tokens is exactly the set arithmetic
+    assert set(valley_m["acquired_victims"]) == victims & acquired
+    assert set(valley_m["acquired_survivors"]) == survivors & acquired
+
+    # direction 1: at least one plant ZORIN acquires is destroyed anyway
+    assert valley_m["acquired_victims"], "manuscript claims the flood destroys a plant ZORIN acquires"
+    # direction 2: no plant outside ZORIN's control survives
+    assert valley_m["unacquired_survivors"] == [], (
+        "manuscript claims no unacquired rival survives; computed survivors outside "
+        f"ZORIN's control: {valley_m['unacquired_survivors']}"
+    )
+
+
+def test_scenario_acquisition_names_are_never_hand_written_in_prose() -> None:
+    """Scenario-dependent firm names must reach the page as tokens.
+
+    The results section used to name `amd_fab` and `nec_fab` in prose, which
+    silently pinned the text to one config value. Any firm in the scenario's
+    acquisition set must now arrive via {{SC_SCENARIO_ACQUIRED}} (or a
+    sibling token), never as a literal.
+    """
+    config = yaml.safe_load((MANUSCRIPT / "config.yaml").read_text(encoding="utf-8"))
+    scenario = metrics.scenario_from_config(config["experiment"])
+    literals: list[str] = []
+    for source in sorted(MANUSCRIPT.glob("[0-9][0-9]_*.md")):
+        text = source.read_text(encoding="utf-8")
+        for firm in scenario.acquired_firms:
+            if firm in text:
+                literals.append(f"{source.name}:{firm}")
+    assert not literals, f"scenario acquisition firms hand-written in prose: {literals}"
+
+
+def test_reproducibility_section_names_the_module_actually_called() -> None:
+    """The manuscript must not claim the pipeline calls `mission`.
+
+    `manuscript_variables` deliberately calls `metrics.run_mission_metrics()`;
+    calling `mission` would import `bond_api` and break the fallback the same
+    section asserts. The doc said `mission.run_mission_metrics()`.
+    """
+    source = (PACKAGE_ROOT / "src" / "a_view_to_a_kill" / "manuscript_variables.py").read_text(encoding="utf-8")
+    assert "from a_view_to_a_kill import mission" not in source
+    assert "metrics_module.run_mission_metrics" in source
+
+    doc = (MANUSCRIPT / "06_reproducibility.md").read_text(encoding="utf-8")
+    assert "mission.run_mission_metrics()" not in doc
+    assert "metrics.run_mission_metrics(scenario)" in doc
