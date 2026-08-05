@@ -71,7 +71,11 @@ git status --short                                         # clean after a path-
   [`docs/_generated/COUNTS.md`](docs/_generated/COUNTS.md) — never hardcode it
   in prose).
 - Zero mocks; real computation and real data only.
-- Deterministic: fixed datasets, mission seed 1985, byte-identical reruns.
+- Deterministic: fixed datasets, mission seed 1985, no wall clock read
+  anywhere, byte-identical reruns. The claim covers the whole persisted
+  `output/` tree — JSON payload, resolved manuscript sections, and figures —
+  for an unchanged source tree on one pinned interpreter, and it is checked by
+  `tests/test_regeneration_determinism.py` running the real generator twice.
 - `bond_api` only in `mission.py`; the package resolves it lazily so the pure
   core imports without it.
 - The `MissionProvider` surface (`brief`/`recon`/`plan`/`execute`/`debrief`)

@@ -21,7 +21,6 @@ statement about the film, which is not a computed quantity.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -73,7 +72,7 @@ def test_every_ledger_entry_names_a_generator_and_tokens(section: str) -> None:
 @pytest.mark.parametrize("section", COMPUTED_SECTIONS)
 def test_every_ledger_token_resolves(section: str) -> None:
     """A ledger token that does not exist is a dangling provenance reference."""
-    variables = msv.generate_variables(now=datetime(2026, 8, 1, tzinfo=timezone.utc))
+    variables = msv.generate_variables()
     dangling: list[str] = []
     for entry in _entries(section):
         for token in entry["tokens"]:

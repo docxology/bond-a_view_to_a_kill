@@ -92,10 +92,20 @@ as an attribute of the package and as a submodule.
 ## Rule 5: Determinism policy
 
 Everything is deterministic. Fixed datasets, mission seed 1985, no untracked
-random draws, no wall-clock value in a computed output. Refactors must preserve
+random draws, and **no wall clock read anywhere** — not in a computed output,
+not in a manuscript token, not in a written artifact. Refactors must preserve
 byte-determinism: two `run_mission` calls produce identical reports, the flood
-simulator is byte-identical across calls, and the figures re-render
-byte-for-byte.
+simulator is byte-identical across calls, the figures re-render byte-for-byte,
+and two runs of `scripts/z_generate_manuscript_variables.py` on one pinned
+interpreter write byte-identical `output/` trees.
+
+`tests/test_regeneration_determinism.py` enforces the last of those by running
+the real generator twice and diffing bytes. Do not "fix" a determinism failure
+by injecting a fixed clock into the generator — that is how the previous
+`GENERATION_TIMESTAMP` breach stayed green. If provenance genuinely needs a
+real timestamp, put it in a run-scoped record that the byte-identical claim
+excludes *in words*, and never inside `output/manuscript/` or
+`output/data/manuscript_variables.json`.
 
 ---
 

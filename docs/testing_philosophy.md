@@ -57,10 +57,24 @@ quoting a number in prose, which goes stale silently.
 ## Determinism
 
 Everything is deterministic: fixed datasets, mission seed 1985, no random
-draws, and no wall-clock value inside any computed output. The one clock-facing
-token (`GENERATION_TIMESTAMP`) takes a `now=` override so tests can pin it, and
-`Provenance.wall_time_s` is fixed at `0.0` for the same reason — a real
-duration would make the mission report non-reproducible.
+draws, and **no wall clock read anywhere in the pipeline**. The manuscript's
+provenance stamp is `MANUSCRIPT_DATE`, read from `paper.date` in
+`manuscript/config.yaml` — a committed value — and `Provenance.wall_time_s` is
+fixed at `0.0` for the same reason: a real duration would make the mission
+report non-reproducible.
+
+This used to be weaker, and the weakness is worth recording because it is a
+reusable lesson. `GENERATION_TIMESTAMP` was a `datetime.now(timezone.utc)`
+reading rendered into `05_experimental_setup.md` and
+`manuscript_variables.json`, so every regeneration wrote different bytes while
+the package claimed byte-identical reruns. The determinism test of the day
+passed a fixed `now=` into the generator — which proves only that a fixed
+input yields a fixed output, a property of every function ever written. **A
+determinism test that injects the varying input is not a determinism test.**
+The replacement, `tests/test_regeneration_determinism.py`, runs the real
+generator twice in two processes with real elapsed time between them and diffs
+the persisted bytes, and it is paired with an AST clock-call scan that carries
+its own positive control.
 
 ## Test file inventory
 
@@ -74,7 +88,8 @@ duration would make the mission report non-reproducible.
 | `test_race_market.py` | odds under overround, implied probability, value edge, Kelly fraction, cover-bankroll plan |
 | `test_mission.py` | the frozen BOND-API surface, lifecycle determinism, gadget registry, metric fidelity |
 | `test_bond_api_fallback.py` | pure core, metrics, figures, and manuscript pipeline running with `bond_api` blocked — plus positive and negative controls |
-| `test_manuscript_variables.py` | config loading, token map, live token cross-reference, strict resolution, strict metric gate |
+| `test_manuscript_variables.py` | config loading, token map, live token cross-reference, strict resolution, strict metric gate, config-sourced provenance date |
+| `test_regeneration_determinism.py` | two real generator runs diffed byte-for-byte, token stability across elapsed time, AST clock-call scan with its own positive control |
 | `test_figures.py` | five PNG renders and their determinism |
 | `test_scripts_smoke.py` | the thin CLIs end-to-end via subprocess, and their artifacts |
 

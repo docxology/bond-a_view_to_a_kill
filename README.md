@@ -83,6 +83,14 @@ uv run ruff check src/ scripts/ tests/ && uv run ruff format --check src/ script
 uv run mypy src/ scripts/
 ```
 
+Determinism is part of the gate, not a slogan: running
+`scripts/z_generate_manuscript_variables.py` twice on one pinned interpreter
+writes a byte-identical `output/` tree — JSON payload, resolved manuscript
+sections, and figures alike. Nothing in the pipeline reads a wall clock; the
+manuscript's provenance stamp is `paper.date` from `manuscript/config.yaml`.
+`tests/test_regeneration_determinism.py` proves it by running the real
+generator twice and diffing the bytes, rather than by injecting a fixed clock.
+
 The gate is ≥90% line + branch coverage on `src/`, zero failures, zero mocks.
 The live measured coverage and test count live in
 [`docs/_generated/COUNTS.md`](docs/_generated/COUNTS.md) rather than being

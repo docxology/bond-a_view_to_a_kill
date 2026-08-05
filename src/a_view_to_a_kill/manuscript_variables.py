@@ -19,13 +19,25 @@ work in the fallback where the ``bond-api`` path dependency is unavailable —
 consuming orchestrator is ``scripts/z_generate_manuscript_variables.py`` (thin
 wrapper); the live cross-reference gate lives in
 ``tests/test_manuscript_variables.py``.
+
+**No wall clock reaches a persisted artifact.** Every token is a function of
+committed inputs only — ``manuscript/config.yaml``, the pure domain core, and
+the interpreter version. The provenance date rendered into the manuscript
+(``MANUSCRIPT_DATE``) is read from ``paper.date`` in the config, never from
+``datetime.now()``. That is what makes the byte-identical-rerun claim in
+``manuscript/02_methodology.md`` and ``manuscript/06_reproducibility.md`` true
+rather than aspirational, and it is checked end to end by
+``tests/test_regeneration_determinism.py``, which runs the real generator twice
+in two processes and diffs the bytes. A ``now=``-injection test cannot
+substitute for that: pinning the clock in-test proves only that a fixed input
+gives a fixed output, which is why the wall-clock breach survived here for as
+long as it did.
 """
 
 from __future__ import annotations
 
 import platform
 import re
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -81,7 +93,6 @@ def generate_variables(
     *,
     config_path: str | Path | None = None,
     require_outputs: bool = True,
-    now: datetime | None = None,
     metrics: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     """Compute the ``{{TOKEN}}`` → value mapping for the ZORIN manuscript.
@@ -94,18 +105,22 @@ def generate_variables(
             empty group fails; this is deliberately an ``any``-style check,
             because a single silently-empty group would otherwise render a
             manuscript with hollow numbers.
-        now: Optional clock override for a fully deterministic timestamp
-            (tests pass a fixed value).
         metrics: Optional pre-computed metric payload (same shape as
             :func:`a_view_to_a_kill.metrics.run_mission_metrics`). Defaults to
             computing it live **from the config's scenario**; supplying it lets
             the strict gate be exercised against real degraded payloads without
             any mocking.
 
+    Returns:
+        A token → value mapping that is a pure function of committed inputs.
+        There is deliberately no clock parameter: the module reads no wall
+        clock at all, so two calls at different times return equal mappings
+        (``tests/test_regeneration_determinism.py``).
+
     Raises:
-        ValueError: If the config sections are malformed, an ``experiment:``
-            knob is missing, or a required metric group is missing/empty under
-            ``require_outputs``.
+        ValueError: If the config sections are malformed, ``paper.date`` is
+            missing, an ``experiment:`` knob is missing, or a required metric
+            group is missing/empty under ``require_outputs``.
     """
     config = load_manuscript_config(config_path)
     paper = config.get("paper", {})
@@ -114,6 +129,17 @@ def generate_variables(
     experiment = config.get("experiment", {})
     if not isinstance(experiment, dict):
         raise ValueError("manuscript config 'experiment' section must be a mapping")
+
+    # The manuscript's provenance date is a *committed* value, not a clock
+    # reading. It must be present: falling back to an empty string would put a
+    # hollow "Manuscript source date  (UTC)" line on the page, and falling back
+    # to `datetime.now()` is the exact defect this replaced.
+    manuscript_date = str(paper.get("date", "")).strip()
+    if not manuscript_date:
+        raise ValueError(
+            "manuscript config 'paper.date' is required — it is the manuscript's "
+            "provenance stamp, and the pipeline reads no wall clock to substitute for it"
+        )
 
     scenario = metrics_module.scenario_from_config(experiment)
     computed = metrics_module.run_mission_metrics(scenario) if metrics is None else metrics
@@ -132,8 +158,6 @@ def generate_variables(
     ratings = race_m["ratings"]
     top_horse = max(sorted(ratings), key=lambda name: ratings[name])
     top_rating = ratings[top_horse]
-
-    stamp = (now or datetime.now(timezone.utc)).isoformat(timespec="seconds")
 
     return {
         # identity from config
@@ -235,9 +259,11 @@ def generate_variables(
         "CORE_DETECTION_PENALTY": _fmt(race_module.DETECTION_PENALTY, 0),
         "CORE_MISSION_SEED": str(metrics_module.SEED),
         "CORE_STAGES": ", ".join(chip_module.STAGES),
-        # environment
+        # environment + provenance. Both are functions of committed inputs and
+        # the pinned interpreter — neither reads a clock, so reruns on one
+        # toolchain are byte-identical.
         "PYTHON_VERSION": platform.python_version(),
-        "GENERATION_TIMESTAMP": stamp,
+        "MANUSCRIPT_DATE": manuscript_date,
     }
 
 

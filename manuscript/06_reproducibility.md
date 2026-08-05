@@ -11,6 +11,23 @@ simulator is byte-deterministic across identical calls
 report is byte-identical across two `run_mission` calls
 (`test_mission.py::test_full_mission_flow_is_deterministic`).
 
+The same holds for the *persisted* artifacts, and this is the load-bearing
+claim of this section: running
+`scripts/z_generate_manuscript_variables.py` twice on one pinned interpreter
+writes byte-identical `output/data/manuscript_variables.json`,
+`output/manuscript/*.md`, and `output/figures/*.png`. Nothing in the pipeline
+reads a wall clock. The manuscript's provenance date ({{MANUSCRIPT_DATE}}) is
+`paper.date` from `manuscript/config.yaml` — a committed value that moves only
+when an author moves it — and the only other environment-derived token is the
+interpreter version ({{PYTHON_VERSION}}), which is fixed for a given
+toolchain. `tests/test_regeneration_determinism.py` enforces this the only way
+that can fail honestly: it runs the real generator twice, in two separate
+processes, with more than a second of real time between them, and diffs the
+bytes. It does **not** inject a fixed clock — an injected `now=` would prove
+only that a fixed input yields a fixed output, and an earlier version of this
+package carried exactly that test while a `datetime.now()` stamp moved
+`05_experimental_setup.md` on every run.
+
 ## Artifacts
 
 Running the pipeline reproduces every artifact from source:

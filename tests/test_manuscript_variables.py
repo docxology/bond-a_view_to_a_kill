@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -39,7 +38,7 @@ def test_load_manuscript_config_non_mapping_raises(tmp_path: Path) -> None:
 
 
 def test_generate_variables_returns_expected_tokens() -> None:
-    variables = msv.generate_variables(require_outputs=True, now=datetime(2026, 8, 1, tzinfo=timezone.utc))
+    variables = msv.generate_variables(require_outputs=True)
     for key in (
         "ZORIN_TITLE",
         "ZORIN_CODENAME",
@@ -53,21 +52,45 @@ def test_generate_variables_returns_expected_tokens() -> None:
         "VALLEY_LOSS",
         "MARKET_KELLY",
         "PYTHON_VERSION",
-        "GENERATION_TIMESTAMP",
+        "MANUSCRIPT_DATE",
     ):
         assert key in variables
         assert variables[key] != ""
     assert variables["ZORIN_CODENAME"] == "ZORIN"
-    # timestamp must be an ISO 8601 string (contains a 'T' and a timezone)
-    assert "T" in variables["GENERATION_TIMESTAMP"]
-    assert "+" in variables["GENERATION_TIMESTAMP"]
 
 
-def test_generate_variables_now_override_is_deterministic() -> None:
-    stamp = datetime(2026, 8, 1, 12, 0, 0, tzinfo=timezone.utc)
-    a = msv.generate_variables(now=stamp)["GENERATION_TIMESTAMP"]
-    b = msv.generate_variables(now=stamp)["GENERATION_TIMESTAMP"]
-    assert a == b == "2026-08-01T12:00:00+00:00"
+def test_manuscript_date_is_the_committed_config_value() -> None:
+    """The provenance stamp is `paper.date`, not a clock reading.
+
+    Bound to the config file rather than to a literal, so the token cannot
+    drift from the source it claims to come from — and so that reintroducing
+    any clock-derived stamp fails here as well as in
+    ``tests/test_regeneration_determinism.py``.
+    """
+    config = yaml.safe_load((MANUSCRIPT / "config.yaml").read_text(encoding="utf-8"))
+    assert msv.generate_variables()["MANUSCRIPT_DATE"] == str(config["paper"]["date"])
+
+
+def test_missing_paper_date_is_rejected_rather_than_clock_substituted(tmp_path: Path) -> None:
+    """A config with no `paper.date` must fail loudly.
+
+    The failure mode this forbids is a silent fallback — either a hollow empty
+    stamp on the page, or a wall-clock value that would make every rerun
+    differ. Positive control below proves the same config passes once a date
+    is supplied, so this is not merely a config-shape complaint.
+    """
+    source = yaml.safe_load((MANUSCRIPT / "config.yaml").read_text(encoding="utf-8"))
+    del source["paper"]["date"]
+    dated = tmp_path / "config.yaml"
+
+    dateless = tmp_path / "dateless.yaml"
+    dateless.write_text(yaml.safe_dump(source), encoding="utf-8")
+    with pytest.raises(ValueError, match="paper.date"):
+        msv.generate_variables(config_path=dateless)
+
+    source["paper"]["date"] = "1985-05-22"
+    dated.write_text(yaml.safe_dump(source), encoding="utf-8")
+    assert msv.generate_variables(config_path=dated)["MANUSCRIPT_DATE"] == "1985-05-22"
 
 
 def test_metrics_are_live_not_stale() -> None:
@@ -127,7 +150,7 @@ def test_generate_variables_rejects_non_mapping_experiment_section(tmp_path: Pat
 
 def test_every_manuscript_token_is_generated() -> None:
     """Live cross-reference gate: every {{TOKEN}} in prose sections resolves."""
-    variables = msv.generate_variables(now=datetime(2026, 8, 1, tzinfo=timezone.utc))
+    variables = msv.generate_variables()
     unresolved: list[str] = []
     for source in sorted(MANUSCRIPT.glob("[0-9][0-9]_*.md")):
         text = source.read_text(encoding="utf-8")
@@ -139,7 +162,7 @@ def test_every_manuscript_token_is_generated() -> None:
 
 
 def test_resolve_manuscript_tree_substitutes_and_writes(tmp_path: Path) -> None:
-    variables = msv.generate_variables(now=datetime(2026, 8, 1, tzinfo=timezone.utc))
+    variables = msv.generate_variables()
     out_dir, resolved = msv.resolve_manuscript_tree(variables, output_dir=tmp_path)
     assert out_dir == tmp_path
     assert resolved == sorted(m.name for m in MANUSCRIPT.glob("[0-9][0-9]_*.md"))

@@ -304,15 +304,20 @@ recorded so nobody re-litigates them.
   `manuscript/05_experimental_setup.md`. Their job is to make the mathematics
   reproducible and testable, not to describe the 1985 semiconductor market.
 
-- **The resolved manuscript is not byte-identical across reruns.**
-  `GENERATION_TIMESTAMP` moves every run, so
+- **The resolved manuscript *is* byte-identical across reruns** (fixed
+  2026-08-05; this entry previously recorded the opposite). `GENERATION_TIMESTAMP`
+  was a `datetime.now(timezone.utc)` reading rendered into
   `output/manuscript/05_experimental_setup.md` and
-  `output/data/manuscript_variables.json` differ by that one line. Everything
-  else is byte-identical (verified this session by diffing two consecutive
-  runs). `manuscript_variables.generate_variables(now=...)` accepts an injected
-  clock, which is how `tests/test_manuscript_variables.py:66` pins determinism.
-  The AGENTS.md "byte-identical reruns" guardrail is about metric payloads and
-  figures, not the timestamp token.
+  `output/data/manuscript_variables.json`, so those two files changed on every
+  regeneration while `AGENTS.md`, `manuscript/02_methodology.md`, and
+  `manuscript/06_reproducibility.md` all claimed byte-identical reruns. Scoping
+  the guardrail around the token, as this entry used to, was a narrowed claim
+  rather than a fix. The token is now `MANUSCRIPT_DATE`, read from `paper.date`
+  in `manuscript/config.yaml`; the `now=` injection point is gone; and
+  `tests/test_regeneration_determinism.py` runs the real generator twice in two
+  processes, with real elapsed time between them, and diffs every persisted
+  byte. The old `now=`-injection determinism test was the reason the breach
+  survived — it pinned the varying input, so it could not fail.
 
 - **`bond-utilities` is not a dependency, and `bond-orchestrator` needs no
   wiring.** `mission.py` is the only `bond_api` importer and the package

@@ -1,8 +1,10 @@
 # Methodology {#sec:methods}
 
 All six models are pure functions of fixed, documented datasets; no random
-draws, no external state, no wall-clock dependence. This guarantees
-byte-identical reruns. The three *structural* models come first
+draws, no external state, no wall-clock dependence. The manuscript pipeline
+that consumes them reads no clock either, so on one pinned interpreter every
+rerun writes byte-identical artifacts — a checked property, not an aspiration
+(the *Reproducibility* section names the gate). The three *structural* models come first
 (supply-chain graph, flood dynamics, race form); the three *decision* models
 that build on them follow (acquisition optimizer over the graph, valley-impact
 coupling over the flood, cover finance over the form ratings).

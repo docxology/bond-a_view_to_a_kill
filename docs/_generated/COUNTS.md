@@ -1,13 +1,14 @@
 # Live counts — a_view_to_a_kill (ZORIN)
 
-Measured on the current `main` (verifier-remediation pass: config-scenario
-wiring, cover-finance model correction, claim-ledger degating). These
-numbers drift as the package evolves; regenerate them after changing tests or
-coverage, and never hardcode them in prose elsewhere.
+Measured on the current `main` (regeneration-determinism pass: the wall-clock
+`GENERATION_TIMESTAMP` replaced by the config-sourced `MANUSCRIPT_DATE`, plus
+`tests/test_regeneration_determinism.py`). These numbers drift as the package
+evolves; regenerate them after changing tests or coverage, and never hardcode
+them in prose elsewhere.
 
 | Metric | Value (measured) |
 |---|---|
-| Passing tests | 300 |
+| Passing tests | 306 |
 | Skipped / failed | 0 / 0 |
 | Line + branch coverage on `src/` | 99.17% |
 | Modules at 100% coverage | `acquisition`, `figures/plots`, `manuscript_variables`, `metrics`, `mission`, `race_analytics`, `race_market` |

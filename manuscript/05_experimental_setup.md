@@ -56,4 +56,6 @@ surfaced here as computed tokens, so neither can drift from the code.
 
 - Python {{PYTHON_VERSION}}
 - numpy, matplotlib, PyYAML; BOND-API protocol via path dependency
-- Generated {{GENERATION_TIMESTAMP}} (UTC)
+- Manuscript source date {{MANUSCRIPT_DATE}}, declared in
+  `manuscript/config.yaml`. The generator reads no wall clock, so this line —
+  like every other line — is the same on every rerun.
