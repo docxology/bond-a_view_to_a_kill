@@ -51,13 +51,24 @@ def test_full_mission_flow_is_deterministic() -> None:
     assert len(a.outcome.provenance.input_hash) == 64
 
 
-def test_execute_reports_three_concept_groups() -> None:
+def test_execute_reports_all_concept_groups() -> None:
     provider = MissionProvider()
     outcome = provider.execute(provider.plan(provider.brief()))
-    assert set(outcome.results) >= {"chip", "flood", "race", "steps_completed"}
+    assert set(outcome.results) >= {
+        "chip",
+        "flood",
+        "race",
+        "acquisition",
+        "valley",
+        "market",
+        "steps_completed",
+    }
     assert "top_choke_points" in outcome.results["chip"]
     assert "flooded_fraction" in outcome.results["flood"]
     assert "detection_risk" in outcome.results["race"]
+    assert "optimal_hhi" in outcome.results["acquisition"]
+    assert "capacity_loss" in outcome.results["valley"]
+    assert "kelly_stake" in outcome.results["market"]
 
 
 def test_debrief_has_lessons() -> None:
@@ -83,13 +94,20 @@ def test_mission_metrics_match_pure_core_directly() -> None:
 
 def test_gadgets_registered_and_callable() -> None:
     assert "a_view_to_a_kill" in gadget_registry
-    assert gadget_registry.gadgets_for("a_view_to_a_kill") == ("chip_metrics", "flood_metrics", "race_metrics")
-    chip_metrics = gadget_registry.lookup("a_view_to_a_kill", "chip_metrics")()
-    assert "hhi_before" in chip_metrics
-    flood_metrics = gadget_registry.lookup("a_view_to_a_kill", "flood_metrics")()
-    assert "water_balance_error" in flood_metrics
-    race_metrics = gadget_registry.lookup("a_view_to_a_kill", "race_metrics")()
-    assert "detection_risk" in race_metrics
+    assert gadget_registry.gadgets_for("a_view_to_a_kill") == (
+        "chip_metrics",
+        "flood_metrics",
+        "race_metrics",
+        "acquisition_metrics",
+        "valley_metrics",
+        "market_metrics",
+    )
+    assert "hhi_before" in gadget_registry.lookup("a_view_to_a_kill", "chip_metrics")()
+    assert "water_balance_error" in gadget_registry.lookup("a_view_to_a_kill", "flood_metrics")()
+    assert "detection_risk" in gadget_registry.lookup("a_view_to_a_kill", "race_metrics")()
+    assert "optimal_hhi" in gadget_registry.lookup("a_view_to_a_kill", "acquisition_metrics")()
+    assert "capacity_loss" in gadget_registry.lookup("a_view_to_a_kill", "valley_metrics")()
+    assert "kelly_stake" in gadget_registry.lookup("a_view_to_a_kill", "market_metrics")()
 
 
 def test_gadgets_are_deterministic() -> None:

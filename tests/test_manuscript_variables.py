@@ -46,6 +46,9 @@ def test_generate_variables_returns_expected_tokens() -> None:
         "FLOOD_FRACTION",
         "RACE_TOP_HORSE",
         "COVER_DETECTION_RISK",
+        "ACQ_OPTIMAL_HHI",
+        "VALLEY_LOSS",
+        "MARKET_KELLY",
         "PYTHON_VERSION",
         "GENERATION_TIMESTAMP",
     ):
@@ -108,5 +111,14 @@ def test_resolve_manuscript_tree_strict_rejects_leftover_token(tmp_path: Path) -
 def test_config_has_expected_experiment_keys() -> None:
     config = yaml.safe_load((MANUSCRIPT / "config.yaml").read_text(encoding="utf-8"))
     exp = config["experiment"]
-    for key in ("flood_ingress_rate", "flood_horizon", "race_halflife", "cover_boost", "cover_sigma"):
+    for key in (
+        "flood_ingress_rate",
+        "flood_horizon",
+        "race_halflife",
+        "cover_boost",
+        "cover_sigma",
+        "acquisition_budget",
+        "cover_bankroll",
+        "market_overround",
+    ):
         assert key in exp

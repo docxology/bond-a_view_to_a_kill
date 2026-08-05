@@ -52,3 +52,68 @@ carrying only ${{COVER_DETECTION_RISK}}$ detection risk, for a positive
 expected value of ${{COVER_EXPECTED_VALUE}}$ — a sustainable cover. Pushing
 the boost toward the detection threshold collapses expected value as the
 scheme is caught (see the methodology analysis in Section [@sec:methods]).
+
+## Monopoly acquisition
+
+![Optimal monopoly HHI by acquisition budget]({../output/figures/acquisition_curve.png}){#fig:acquisition_curve}
+
+Table: Acquisition optimizer on the default market (budget {{ACQ_BUDGET}}).
+
+| Metric | Value |
+|---|---|
+| Acquireable independent fabricators | {{ACQ_ACQUIREABLE}} |
+| Baseline HHI (buy nothing) | {{ACQ_BASELINE_HHI}} |
+| Optimal acquired | {{ACQ_OPTIMAL_ACQUIRED}} |
+| Optimal HHI | {{ACQ_OPTIMAL_HHI}} |
+| HHI gain vs baseline | {{ACQ_HHI_GAIN}} |
+| Greedy baseline HHI | {{ACQ_GREEDY_HHI}} |
+| Greedy regret | {{ACQ_REGRET}} |
+
+The exhaustive optimum ([@fig:acquisition_curve]) lifts concentration from
+{{ACQ_BASELINE_HHI}} to {{ACQ_OPTIMAL_HHI}} with just {{ACQ_BUDGET}}
+acquisitions; on this graph greedy matches the optimum (regret
+{{ACQ_REGRET}}), so the naive strategy is not the failure mode here — the
+headline is the *scale* of the concentration a two-firm buy achieves.
+
+## Valley impact
+
+![Silicon-valley fabricating capacity lost to the flood]({../output/figures/valley_impact.png}){#fig:valley_impact}
+
+Table: Urban blast-reach of the flood at the decision horizon.
+
+| Metric | Value |
+|---|---|
+| Valley fabs | {{VALLEY_FABS}} |
+| Capacity loss (fraction inoperable) | {{VALLEY_LOSS}} |
+| Inoperable fabs | {{VALLEY_INOPERABLE}} |
+| Victims | {{VALLEY_VICTIMS}} |
+| Survivors | {{VALLEY_SURVIVORS}} |
+
+By the horizon the flood's groundwater reach has disabled {{VALLEY_INOPERABLE}}
+of {{VALLEY_FABS}} valley fabrication plants — {{VALLEY_LOSS}} of total
+fabricating capacity ([@fig:valley_impact]) — while
+`{{VALLEY_SURVIVORS}}` remain operable. The survivor list is the tell:
+ZORIN's own `zorin_fab` sits over the low-coupling `shaft_a`, protected from
+the very flood he releases.
+
+## Cover finance
+
+The betting-market model prices the cover against an honest {{CONFIG_MARKET_OVERROUND}}
+overround book. Table: cover-bankroll plan for `{{MARKET_HORSE}}`.
+
+| Metric | Value |
+|---|---|
+| Bankroll | {{CONFIG_COVER_BANKROLL}} |
+| Boosted true win probability | {{MARKET_TRUE_PROB}} |
+| Market-implied probability | {{MARKET_IMPLIED}} |
+| Value edge per unit | {{MARKET_EDGE}} |
+| Kelly fraction | {{MARKET_KELLY}} |
+| Kelly stake (USD) | {{MARKET_STAKE}} |
+| Expected profit (USD) | {{MARKET_PROFIT}} |
+
+The manipulated horse's true probability ({{MARKET_TRUE_PROB}}) sits just
+above the market-implied ({{MARKET_IMPLIED}}), a narrow but positive edge
+({{MARKET_EDGE}}) that justifies a Kelly stake of {{MARKET_STAKE}}. That a
+single horse's true chance so precisely exceeds the honest market's price is
+exactly the statistical anomaly the cover-risk model would flag — the cover
+is profitable only while it stays undetectable.

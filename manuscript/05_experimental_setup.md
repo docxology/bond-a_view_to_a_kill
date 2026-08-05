@@ -25,6 +25,9 @@ core and annotated in `data/claim_ledger.yaml`:
 - Race-form EWMA halflife: {{CONFIG_RACE_HALFLIFE}} races.
 - Cover boost to Pegasus: {{CONFIG_COVER_BOOST}} speed-index units; natural
   race-to-race variability {{CONFIG_COVER_SIGMA}}; detection threshold 1.0.
+- Acquisition budget: {{CONFIG_ACQUISITION_BUDGET}} independent fabricators.
+- Cover betting bankroll: {{CONFIG_COVER_BANKROLL}} USD; bookmaker overround
+  {{CONFIG_MARKET_OVERROUND}}.
 - Mission RNG seed: 1985 (fixed; no randomness is ever drawn).
 
 ## Software environment

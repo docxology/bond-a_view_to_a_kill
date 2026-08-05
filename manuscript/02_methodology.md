@@ -93,3 +93,53 @@ ${{CONFIG_COVER_BOOST}}$ boost to Pegasus (with
 $\sigma = {{CONFIG_COVER_SIGMA}}$) the risk is ${{COVER_DETECTION_RISK}}$ and
 expected value ${{COVER_EXPECTED_VALUE}}$ — a sustainable cover — whereas a
 blatant boost is caught (see [@fig:race_cover]).
+
+## Monopoly acquisition optimizer
+
+The monopoly is a *selection* problem too: with a budget of
+$K$ acquisitions ([@fig:acquisition_curve]), which independent fabricators
+should ZORIN buy? The acquireable set is the ${{ACQ_ACQUIREABLE}}$ fabricators
+(owners other than ZORIN). Each budget-$K$ subset is scored by the objective
+`post_elimination_hhi(chain, acquired)` (or by ZORIN's fabrication share),
+and `optimal_acquisition` exhaustively searches over every $K$-subset with
+deterministic tie-breaking. `greedy_acquisition` is the hill-climbing baseline
+that adds the single firm giving the largest score gain at each step. Because
+the exhaustive search is optimal, $\mathrm{greedy} \le \mathrm{optimal}$
+always; with the default budget of {{ACQ_BUDGET}} the optimal acquisition
+(`{{ACQ_OPTIMAL_ACQUIRED}}`) lifts HHI from {{ACQ_BASELINE_HHI}} to
+{{ACQ_OPTIMAL_HHI}}, a gain of {{ACQ_HHI_GAIN}} over buying nothing, while the
+greedy baseline reaches {{ACQ_GREEDY_HHI}} (regret {{ACQ_REGRET}}).
+
+## Valley impact — the flood's urban blast-reach
+
+ZORIN's sabotage is not the flood but its *consequence*. Each surface
+fabrication plant (a `SurfaceFab`) is hydraulically coupled to a mine chamber;
+water in that chamber raises the local water table by the fab's `leakage`
+coefficient, and the fab becomes inoperable when that table reaches its
+`foundation_elevation`:
+
+$$ \mathrm{table}_{f}(t) = \ell_f \cdot h_{c(f)}(t), \qquad \text{inoperable if }
+   \mathrm{table}_{f}(t) \ge z_f. $$
+
+`valley_capacity_loss` reports the fraction of total fabricating capacity
+inoperable by a decision time — for the default scenario {{VALLEY_INOPERABLE}}
+of {{VALLEY_FABS}} fabs ({{VALLEY_LOSS}} of capacity) by the horizon, while
+`{{VALLEY_SURVIVORS}}` survive because ZORIN built his own plant over the
+low-coupling, high-separation chamber (see [@fig:valley_impact]).
+
+## Racing betting market and cover finance
+
+The cover is financed by betting on the controlled horse. `market_odds`
+converts true win probabilities into decimal odds under a bookmaker overround
+$\nu = {{CONFIG_MARKET_OVERROUND}}$, so the market's implied probabilities sum
+to $\nu$: $q_i = p_i \nu$, $\mathrm{odds}_i = 1/q_i$. Against that *honest*
+book, `cover_bankroll` prices the manipulated horse using its boosted true
+probability $p^\ast$: the value edge is $p^\ast \mathrm{odds} - 1$, the
+Kelly-optimal stake fraction is
+$(p^\ast \mathrm{odds} - 1)/(\mathrm{odds} - 1)$ when positive, and the
+expected profit is the edge times the staked bankroll. For Pegasus under a
+${{CONFIG_COVER_BOOST}}$ boost the true probability
+({{MARKET_TRUE_PROB}}) exceeds the market-implied ({{MARKET_IMPLIED}}),
+giving a positive edge ({{MARKET_EDGE}}) and a Kelly stake of
+{{MARKET_STAKE}} — precisely the anomaly that the cover-risk model of
+`race_analytics` would eventually flag [@kelly1956].

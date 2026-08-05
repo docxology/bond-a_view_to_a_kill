@@ -28,11 +28,14 @@ the test asserts conservation and byte-determinism across identical calls.
 | File | Covers |
 |---|---|
 | `test_chip_supply_chain.py` | graph validity, HHI, betweenness, cascade, monopoly attack |
+| `test_acquisition.py` | exhaustive vs greedy, budget bounds, objective, improvement |
 | `test_mine_flood.py` | validation, conservation, analytic fill, flood time/fraction, critical ingress |
+| `test_valley_impact.py` | fab coupling, water-table levels, inoperable times, capacity loss, report |
 | `test_race_analytics.py` | speed indices, EWMA, softmax, detection risk, cover viability |
+| `test_race_market.py` | odds/overround, implied, value edge, Kelly, cover-bankroll plan |
 | `test_mission.py` | BOND-API protocol, determinism, gadgets, metric fidelity |
 | `test_manuscript_variables.py` | config, token map, live `{{TOKEN}}` cross-ref, strict resolution |
-| `test_figures.py` | PNG render + determinism |
+| `test_figures.py` | five PNG renders + determinism |
 | `test_scripts_smoke.py` | thin CLIs via subprocess, artifact output |
 
 ## Conventions

@@ -37,6 +37,15 @@ computed_metrics:
   - id: cover_metrics
     value: "win_delta 0.035 / detection_risk 0.001 / expected_value 2924 (boost 0.2)"
     generator: "race_analytics.cover_viability"
+  - id: acquisition_metrics
+    value: "optimal HHI 1741.4 vs baseline 1012.8 (budget 2, acquire intel_fab+nec_fab)"
+    generator: "acquisition.improvement / optimal_acquisition"
+  - id: valley_metrics
+    value: "capacity loss 0.583; victims {intel, amd, silicon_valley}_fab; survivors {zorin_fab, nec_fab}"
+    generator: "valley_impact.valley_report"
+  - id: market_metrics
+    value: "true prob 0.248 vs implied 0.245; edge 0.0127; Kelly stake 414 (boost 0.2, overround 1.12)"
+    generator: "race_market.cover_bankroll"
 
 film_facts:
   - id: film_reference

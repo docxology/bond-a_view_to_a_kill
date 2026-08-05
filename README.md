@@ -14,14 +14,25 @@ deterministic, fully-tested computational models, wrapped in the FROZEN
    centrality (structural choke points), single-source dependence, cascade
    failure, and the ZORIN elimination attack (monopoly share +
    post-elimination HHI).
-2. **Flood-the-mine water-ingress dynamics** — `mine_flood.py`
+2. **Monopoly acquisition optimizer** — `acquisition.py`
+   The budgeted selection problem of which independent fabricators to buy to
+   corner the market: exhaustive (optimal) vs greedy search over budget-sized
+   subsets, scored by HHI or fabrication share.
+3. **Flood-the-mine water-ingress dynamics** — `mine_flood.py`
    A mass-conserving deterministic Euler simulation of water flowing through a
    chamber/tunnel mine network under a head-driven weir law; flood fraction,
    flood times, critical ingress.
-3. **Race-form cover analytics** — `race_analytics.py`
+4. **Valley impact (urban sabotage)** — `valley_impact.py`
+   Couples the flood to the fabs above: rising groundwater disables competitor
+   fabrication plants (fraction of capacity lost) while ZORIN's own fab
+   survives.
+5. **Race-form cover analytics** — `race_analytics.py`
    Normalized speed indices, EWMA form ratings, softmax win probabilities, and
    a signal-detection cover-risk model scoring the trade-off between a bigger
    win probability and the chance the manipulation is detected.
+6. **Racing betting-market / cover-finance** — `race_market.py`
+   Decimal odds under a bookmaker overround, implied probabilities, the Kelly
+   criterion, and a cover-bankroll plan pricing the manipulated horse's edge.
 
 `mission.py` adapts the pure core to the FROZEN `bond_api.MissionProvider`
 (brief / recon / plan / execute / debrief) and registers mission gadgets. Only

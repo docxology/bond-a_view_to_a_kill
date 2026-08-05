@@ -48,6 +48,12 @@ experiment:
   race_halflife: 2.0
   cover_boost: 0.2
   cover_sigma: 0.5
+  # Monopoly acquisition budget (number of independent fabricators to buy);
+  # the cover-operation betting bankroll (USD); the bookmaker's overround
+  # (weighted margin applied when pricing the race).
+  acquisition_budget: 2
+  cover_bankroll: 100000.0
+  market_overround: 1.12
 
 testing:
   max_test_failures: 0

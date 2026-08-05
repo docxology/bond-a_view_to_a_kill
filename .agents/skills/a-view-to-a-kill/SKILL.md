@@ -16,15 +16,22 @@ provider, regenerating the manuscript/figures, or running its gates.
 
 ## What it is
 
-Three pure domain modules wrapped in the FROZEN `bond_api.MissionProvider`:
+Three pure domain concepts, each deepened with an extra module in phase 4 —
+six pure modules total, wrapped in the FROZEN `bond_api.MissionProvider`:
 
 - `chip_supply_chain.py` — microchip supply-chain security graph: HHI,
   betweenness choke points, single-source dependence, cascade failure,
   monopoly share / post-elimination HHI.
+- `acquisition.py` (phase 4) — budgeted monopoly acquisition optimizer:
+  exhaustive (optimal) vs greedy, scored by HHI or fabrication share.
 - `mine_flood.py` — mass-conserving Euler water-ingress simulation; flood
   fraction, flood times, critical ingress.
+- `valley_impact.py` (phase 4) — mine-flood to surface-fab damage coupling
+  (urban blast-reach; victim/survivor split of valley capacity).
 - `race_analytics.py` — speed indices, EWMA ratings, softmax win
   probabilities, signal-detection cover risk, expected value.
+- `race_market.py` (phase 4) — betting-market decimal odds under an overround,
+  implied probabilities, Kelly staking, cover-bankroll finance.
 
 Only `mission.py` imports `bond_api` (path dependency in `pyproject.toml`);
 `manuscript_variables.py` and `figures/` are `bond_api`-free. `scripts/` are

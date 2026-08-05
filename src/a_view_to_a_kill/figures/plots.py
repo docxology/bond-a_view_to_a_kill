@@ -22,14 +22,18 @@ matplotlib.use("Agg")  # deterministic, headless-safe backend
 
 import matplotlib.pyplot as plt  # noqa: E402  (backend configured above)
 
+from a_view_to_a_kill import acquisition as acq
 from a_view_to_a_kill import mine_flood as flood
 from a_view_to_a_kill import race_analytics as race
+from a_view_to_a_kill import valley_impact as valley
 from a_view_to_a_kill import mission
 
 __all__ = [
     "render_choke_points",
     "render_flood",
     "render_cover",
+    "render_acquisition_curve",
+    "render_valley_impact",
     "render_mission_figures",
 ]
 
@@ -86,14 +90,54 @@ def render_cover(out_path: str | Path) -> Path:
     return Path(out_path)
 
 
+def render_acquisition_curve(out_path: str | Path) -> Path:
+    """Optimal monopoly HHI against the acquisition budget (0..max)."""
+    chain = mission.chip.build_default_supply_chain()
+    max_budget = len(acq.acquireable_firms(chain))
+    budgets = list(range(max_budget + 1))
+    hhis = [acq.optimal_acquisition(chain, b, "hhi")[1] for b in budgets]
+
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    ax.plot(budgets, hhis, marker="o", color="#7c2d12")
+    ax.set_title("Optimal monopoly HHI by acquisition budget")
+    ax.set_xlabel("Acquisition budget (independent fabricators)")
+    ax.set_ylabel("HHI (post-elimination)")
+    ax.set_xticks(budgets)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    _save(fig, out_path)
+    return Path(out_path)
+
+
+def render_valley_impact(out_path: str | Path) -> Path:
+    """Valley fabricating-capacity loss over time from the flood's urban reach."""
+    mine = flood.build_default_mine()
+    sim = flood.simulate_flood(mine, ("adit",), mission.FLOOD_PARAMS)
+    fabs = valley.build_default_valley()
+    losses = [valley.valley_capacity_loss(mine, sim, fabs, t) for t in sim.times]
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.plot(sim.times, losses, color="#0f4c81")
+    ax.set_title("Silicon-valley fabricating capacity lost to the flood")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Capacity loss (fraction inoperable)")
+    ax.set_ylim(0.0, 1.02)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    _save(fig, out_path)
+    return Path(out_path)
+
+
 def render_mission_figures(output_dir: str | Path) -> list[Path]:
-    """Render all three concept figures into ``output_dir``; returns paths."""
+    """Render all five concept figures into ``output_dir``; returns paths."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     paths = [
         render_choke_points(out / "choke_points.png"),
         render_flood(out / "flood_curve.png"),
         render_cover(out / "race_cover.png"),
+        render_acquisition_curve(out / "acquisition_curve.png"),
+        render_valley_impact(out / "valley_impact.png"),
     ]
     plt.close("all")
     return paths

@@ -20,9 +20,12 @@ import hashlib
 import json
 from typing import Any
 
+from a_view_to_a_kill import acquisition as acq
 from a_view_to_a_kill import chip_supply_chain as chip
 from a_view_to_a_kill import mine_flood as flood
 from a_view_to_a_kill import race_analytics as race
+from a_view_to_a_kill import race_market as mkt
+from a_view_to_a_kill import valley_impact as valley
 from bond_api.protocol import (
     Asset,
     Constraint,
@@ -56,6 +59,11 @@ ACQUIRED_FIRMS = ("amd_fab", "nec_fab")
 COVER_BOOST = 0.2
 COVER_SIGMA = 0.5
 
+#: Acquisition budget (number of independent fabricators to buy) and the
+#: cover-operation bankroll backing the betting market.
+ACQUISITION_BUDGET = 2
+COVER_BANKROLL = 100_000.0
+
 #: Gadgets registered for this film (deterministic zero-arg callables).
 gadget_registry = GadgetRegistry()
 gadget_registry.register(
@@ -64,6 +72,9 @@ gadget_registry.register(
         "chip_metrics": lambda: chip_metrics(),
         "flood_metrics": lambda: flood_metrics(),
         "race_metrics": lambda: race_metrics(),
+        "acquisition_metrics": lambda: acquisition_metrics(),
+        "valley_metrics": lambda: valley_metrics(),
+        "market_metrics": lambda: market_metrics(),
     },
 )
 
@@ -114,8 +125,57 @@ def race_metrics() -> dict[str, Any]:
     }
 
 
+def acquisition_metrics() -> dict[str, Any]:
+    """Computed monopoly-acquisition optimization metrics."""
+    chain = chip.build_default_supply_chain()
+    improved = acq.improvement(chain, ACQUISITION_BUDGET, "hhi")
+    _, optimal_score = acq.optimal_acquisition(chain, ACQUISITION_BUDGET, "hhi")
+    _, greedy_score = acq.greedy_acquisition(chain, ACQUISITION_BUDGET, "hhi")
+    return {
+        "budget": ACQUISITION_BUDGET,
+        "acquireable": list(acq.acquireable_firms(chain)),
+        "optimal_acquired": list(improved.acquired),
+        "optimal_hhi": improved.score,
+        "baseline_hhi": improved.baseline,
+        "hhi_gain": improved.gain,
+        "greedy_hhi": greedy_score,
+        "regret": float(optimal_score - greedy_score),
+    }
+
+
+def valley_metrics() -> dict[str, Any]:
+    """Computed valley-impact (urban sabotage) coupling metrics."""
+    mine = flood.build_default_mine()
+    sim = flood.simulate_flood(mine, ("adit",), FLOOD_PARAMS)
+    fabs = valley.build_default_valley()
+    report = valley.valley_report(mine, sim, fabs, FLOOD_PARAMS.horizon)
+    return {
+        "fabs": len(fabs),
+        "capacity_loss": report["capacity_loss"],
+        "inoperable": report["inoperable"],
+        "victims": report["victims"],
+        "survivors": report["survivors"],
+    }
+
+
+def market_metrics() -> dict[str, Any]:
+    """Computed racing betting-market / cover-finance metrics."""
+    ratings = race.form_ratings(race.FORM_TABLE)
+    probs = {name: hr.rating for name, hr in ratings.items()}
+    plan = mkt.cover_bankroll(probs, "Pegasus", COVER_BOOST, COVER_BANKROLL)
+    return {
+        "horse": plan.horse,
+        "true_probability": plan.true_probability,
+        "market_implied_probability": plan.market_implied_probability,
+        "value_edge": plan.value_edge,
+        "kelly_fraction": plan.kelly_fraction,
+        "kelly_stake": plan.kelly_stake,
+        "expected_profit": plan.expected_profit,
+    }
+
+
 def run_mission_metrics() -> dict[str, Any]:
-    """Aggregate the three concept metric groups into one deterministic map.
+    """Aggregate the six concept metric groups into one deterministic map.
 
     This is the canonical result payload the ``execute`` stage reports, kept
     separate from the provider so tests and figures can call it directly
@@ -125,6 +185,9 @@ def run_mission_metrics() -> dict[str, Any]:
         "chip": chip_metrics(),
         "flood": flood_metrics(),
         "race": race_metrics(),
+        "acquisition": acquisition_metrics(),
+        "valley": valley_metrics(),
+        "market": market_metrics(),
     }
 
 
@@ -186,12 +249,15 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
         )
 
     def plan(self, brief: MissionBrief) -> MissionPlan:
-        """Plan the four deterministic execute steps, one per concept plus verify."""
+        """Plan the deterministic execute steps, one per concept plus verify."""
         return MissionPlan(
             steps=(
                 Step(name="supply_chain", action="analyze_choke_points", params={"acquire": list(ACQUIRED_FIRMS)}),
+                Step(name="acquisition", action="optimize_monopoly", params={"budget": ACQUISITION_BUDGET}),
                 Step(name="mine_flood", action="simulate_water_ingress", params={"ingress": "adit"}),
+                Step(name="valley", action="couple_flood_to_surface", params={"horizon": FLOOD_PARAMS.horizon}),
                 Step(name="race_cover", action="score_form_and_cover", params={"boost": COVER_BOOST}),
+                Step(name="market", action="score_cover_finance", params={"bankroll": COVER_BANKROLL}),
                 Step(name="verify", action="check_conservation_and_determinism", params={"seed": SEED}),
             )
         )
@@ -217,7 +283,10 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
             outcome=outcome,
             lessons=(
                 "concentration metrics (HHI, choke betweenness) quantify monopoly exposure",
+                "exhaustive acquisition search beats the greedy baseline on concentration",
                 "the mine-flood model conserves water mass to machine precision",
+                "the flood's urban blast-reach disables rival fabs while ZORIN's own survives",
                 "covering a scheme is a trade-off: detection risk outruns win probability",
+                "a boosted true edge against honest market odds is exactly the anomaly to detect",
             ),
         )

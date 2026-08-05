@@ -26,13 +26,30 @@ conditions:
     natural_sigma: 0.5
     primary_metric: "cover_viability expected_value (win_delta vs detection_risk)"
     ablation: "boost sweep 0.0..3.0; expected value peaks at moderate boost"
+  acquisition:
+    budget: 2
+    acquireable: ["amd_fab", "intel_fab", "nec_fab"]
+    primary_metric: "optimal post-elimination HHI vs baseline; greedy regret"
+    ablation: "budget sweep 0..3; exhaustive vs greedy"
+  valley:
+    fabs: 5
+    coupling: "leakage x chamber head vs foundation elevation"
+    primary_metric: "valley_capacity_loss at horizon; victims/survivors"
+    ablation: "ingress entries (adit / adit+shaft_a); capacity loss over time"
+  market:
+    overround: 1.12
+    bankroll: 100000.0
+    primary_metric: "cover_bankroll value edge, Kelly stake, expected profit"
+    ablation: "overround sweep; boost sweep; true vs market-implied gap"
 
 expected_figures:
   - "output/figures/choke_points.png"
   - "output/figures/flood_curve.png"
   - "output/figures/race_cover.png"
+  - "output/figures/acquisition_curve.png"
+  - "output/figures/valley_impact.png"
 
 expected_tables:
-  - "results table in manuscript 03_results.md (HHI, flood fraction, cover metrics)"
+  - "results tables in manuscript 03_results.md (HHI, flood, acquisition, valley, market)"
 
 baseline: "deterministic mission metrics recomputed on every z_generate run"

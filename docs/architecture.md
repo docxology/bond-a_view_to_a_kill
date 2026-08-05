@@ -15,7 +15,7 @@ pure core (chip_supply_chain, mine_flood, race_analytics)
 
 | Layer | Modules | Rules |
 |---|---|---|
-| **Pure core** | `chip_supply_chain.py`, `mine_flood.py`, `race_analytics.py` | All mathematics; no `bond_api`, no `infrastructure`, no I/O, no RNG; importable standalone. |
+| **Pure core** | `chip_supply_chain.py`, `acquisition.py`, `mine_flood.py`, `valley_impact.py`, `race_analytics.py`, `race_market.py` | All mathematics; no `bond_api`, no `infrastructure`, no I/O, no RNG; importable standalone. |
 | **Adapter** | `mission.py` | The **only** `bond_api` importer; implements the FROZEN `MissionProvider`; registers gadgets. |
 | **Manuscript / figures** | `manuscript_variables.py`, `figures/plots.py` | `bond_api`-free; metrics computed from the core; deterministic matplotlib. |
 | **Orchestration** | `scripts/*.py` | Thin CLIs; bootstrap `sys.path`, call `src`, print reports. |
@@ -26,12 +26,19 @@ pure core (chip_supply_chain, mine_flood, race_analytics)
    market share / HHI, Brandes betweenness (choke points),
    single-source dependence, cascade failure, ZORIN monopoly share +
    post-elimination HHI.
-2. **Mine flood** (`mine_flood.py`): chamber/tunnel network → mass-conserving
+2. **Acquisition** (`acquisition.py`): budgeted monopoly selection — exhaustive
+   (optimal) vs greedy over budget-sized subsets, scored by HHI or fab share.
+3. **Mine flood** (`mine_flood.py`): chamber/tunnel network → mass-conserving
    head-driven Euler water-ingress simulation → flood fraction, flood times,
    critical ingress.
-3. **Race cover** (`race_analytics.py`): raw race records → normalized speed
+4. **Valley impact** (`valley_impact.py`): couples the flood to surface fabs
+   (leakage × chamber head vs foundation) → capacity loss + victim/survivor
+   split (urban blast-reach).
+5. **Race cover** (`race_analytics.py`): raw race records → normalized speed
    indices → EWMA ratings → softmax win probabilities → signal-detection
    cover risk + expected-value.
+6. **Race market** (`race_market.py`): decimal odds under an overround,
+   implied probabilities, Kelly staking, cover-bankroll finance.
 
 ## Dependencies
 

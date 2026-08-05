@@ -83,6 +83,9 @@ def generate_variables(
     chip_m = metrics["chip"]
     flood_m = metrics["flood"]
     race_m = metrics["race"]
+    acq_m = metrics["acquisition"]
+    valley_m = metrics["valley"]
+    market_m = metrics["market"]
 
     monkey = race_m["ratings"]
     top_rating = max(monkey.values())
@@ -104,6 +107,9 @@ def generate_variables(
         "CONFIG_RACE_HALFLIFE": str(experiment.get("race_halflife", "")),
         "CONFIG_COVER_BOOST": str(experiment.get("cover_boost", "")),
         "CONFIG_COVER_SIGMA": str(experiment.get("cover_sigma", "")),
+        "CONFIG_ACQUISITION_BUDGET": str(experiment.get("acquisition_budget", "")),
+        "CONFIG_COVER_BANKROLL": str(experiment.get("cover_bankroll", "")),
+        "CONFIG_MARKET_OVERROUND": str(experiment.get("market_overround", "")),
         # computed supply-chain metrics
         "SC_NODES": str(chip_m["nodes"]),
         "SC_LINKS": str(chip_m["links"]),
@@ -112,6 +118,15 @@ def generate_variables(
         "SC_ZORIN_FAB_SHARE": _fmt(chip_m["zorin_fab_share"], 3),
         "SC_CASCADE_STARVED": _fmt(chip_m["cascade_starved_fraction"], 3),
         "SC_TOP_CHOKE": _fmt(chip_m["top_choke_points"][0][0], 0),
+        # computed acquisition metrics
+        "ACQ_BUDGET": str(acq_m["budget"]),
+        "ACQ_ACQUIREABLE": ", ".join(acq_m["acquireable"]),
+        "ACQ_OPTIMAL_ACQUIRED": ", ".join(acq_m["optimal_acquired"]),
+        "ACQ_OPTIMAL_HHI": _fmt(acq_m["optimal_hhi"], 1),
+        "ACQ_BASELINE_HHI": _fmt(acq_m["baseline_hhi"], 1),
+        "ACQ_HHI_GAIN": _fmt(acq_m["hhi_gain"], 1),
+        "ACQ_GREEDY_HHI": _fmt(acq_m["greedy_hhi"], 1),
+        "ACQ_REGRET": _fmt(acq_m["regret"], 1),
         # computed flood metrics
         "FLOOD_CHAMBERS": str(flood_m["chambers"]),
         "FLOOD_TUNNELS": str(flood_m["tunnels"]),
@@ -120,6 +135,12 @@ def generate_variables(
         "FLOOD_CRITICAL_INGRESS": str(flood_m["critical_ingress"][0]),
         "FLOOD_WATER_BALANCE": "{:.1e}".format(float(flood_m["water_balance_error"])),
         "FLOOD_VAULT_TIME": _fmt(flood_m["vault_flood_time"], 1),
+        # computed valley-impact metrics
+        "VALLEY_FABS": str(valley_m["fabs"]),
+        "VALLEY_LOSS": _fmt(valley_m["capacity_loss"], 3),
+        "VALLEY_INOPERABLE": str(valley_m["inoperable"]),
+        "VALLEY_VICTIMS": ", ".join(valley_m["victims"]),
+        "VALLEY_SURVIVORS": ", ".join(valley_m["survivors"]),
         # computed race/cover metrics
         "RACE_HORSES": str(race_m["horses"]),
         "RACE_RECORDS": str(race_m["records"]),
@@ -129,6 +150,14 @@ def generate_variables(
         "COVER_WIN_DELTA": _fmt(race_m["pegasus_win_delta"], 3),
         "COVER_DETECTION_RISK": _fmt(race_m["detection_risk"], 3),
         "COVER_EXPECTED_VALUE": _fmt(race_m["expected_value"], 0),
+        # computed market/cover-finance metrics
+        "MARKET_HORSE": market_m["horse"],
+        "MARKET_TRUE_PROB": _fmt(market_m["true_probability"], 3),
+        "MARKET_IMPLIED": _fmt(market_m["market_implied_probability"], 3),
+        "MARKET_EDGE": _fmt(market_m["value_edge"], 4),
+        "MARKET_KELLY": _fmt(market_m["kelly_fraction"], 4),
+        "MARKET_STAKE": _fmt(market_m["kelly_stake"], 0),
+        "MARKET_PROFIT": _fmt(market_m["expected_profit"], 0),
         # environment
         "PYTHON_VERSION": platform.python_version(),
         "GENERATION_TIMESTAMP": stamp,

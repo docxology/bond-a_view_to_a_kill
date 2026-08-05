@@ -1,5 +1,20 @@
 # TODO — a_view_to_a_kill (ZORIN)
 
+## Phase-4 deep improvement
+
+- **New pure modules**: `acquisition.py` (budgeted monopoly acquisition
+  optimizer — exhaustive vs greedy), `valley_impact.py` (mine-flood to
+  surface-fab damage coupling, the urban blast-reach), `race_market.py`
+  (betting-market odds / Kelly / cover-bankroll finance).
+- **Mission deepened inside the protocol**: `mission.py` now reports six
+  result groups (chip/flood/race/acquisition/valley/market) and six gadgets;
+  plan gains `acquisition`, `valley`, `market` steps. Public protocol surface
+  (brief/recon/plan/execute/debrief, `gadget_registry`) unchanged.
+- **Manuscript** updated (abstract, methodology, results, setup; new
+  `acquisition_curve` + `valley_impact` figures; Kelly/groundwater/supply-chain
+  references added to `references.bib`).
+- **Coverage raised** to 93.47% on `src/` (186 tests, 0 mocks, 0 failed).
+
 ## Built (phase-1 conversion)
 
 - **Pure core**
@@ -15,17 +30,15 @@
 - **Protocol integration**
   - `src/a_view_to_a_kill/mission.py` — implements the FROZEN
     `bond_api.MissionProvider` (brief/recon/plan/execute/debrief), mission
-    seed 1985, and registers `chip_metrics` / `flood_metrics` / `race_metrics`
-    gadgets on a `GadgetRegistry`.
+    seed 1985, and registers mission gadgets on a `GadgetRegistry`.
 - **Manuscript & figures**
-  - `src/a_view_to_a_kill/manuscript_variables.py` — 30+ `{{TOKEN}}` values
+  - `src/a_view_to_a_kill/manuscript_variables.py` — 59 `{{TOKEN}}` values
     computed from the core (never authored).
-  - `src/a_view_to_a_kill/figures/plots.py` — choke-point, flood-curve, and
-    race-cover deterministic PNG figures.
+  - `src/a_view_to_a_kill/figures/plots.py` — five deterministic PNG figures.
   - `manuscript/` — 8 sections + config.yaml + SYNTAX/AGENTS/README/bib.
 - **Scripts** — `mission_brief/recon/plan/execute/debrief.py` +
   `z_generate_manuscript_variables.py` (thin CLIs).
-- **Tests** — 127 tests, zero mocks, real data; `--cov=src` at ≥90%
+- **Tests** — 186 tests, zero mocks, real data; `--cov=src` at ≥90%
   line+branch (live value in `docs/_generated/COUNTS.md`).
 
 ## Declared integration points

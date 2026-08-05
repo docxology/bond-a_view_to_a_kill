@@ -35,6 +35,8 @@ Generators live in `src/a_view_to_a_kill/figures/plots.py` and render to
 | `{#fig:choke_points}` | `output/figures/choke_points.png` | supply-chain betweenness |
 | `{#fig:flood_curve}` | `output/figures/flood_curve.png` | flooded fraction over time |
 | `{#fig:race_cover}` | `output/figures/race_cover.png` | race-card form ratings |
+| `{#fig:acquisition_curve}` | `output/figures/acquisition_curve.png` | optimal HHI by acquisition budget |
+| `{#fig:valley_impact}` | `output/figures/valley_impact.png` | valley capacity loss over time |
 
 ## Citations & cross-references
 
