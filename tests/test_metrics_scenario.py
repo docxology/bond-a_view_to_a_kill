@@ -30,6 +30,7 @@ from typing import Any
 import pytest
 import yaml
 
+from a_view_to_a_kill import chip_supply_chain as chip
 from a_view_to_a_kill import manuscript_variables as msv
 from a_view_to_a_kill import metrics
 
@@ -266,6 +267,40 @@ def test_scenario_shortfall_is_the_optimizer_bound() -> None:
     # reports rather than reconciles away
     assert sorted(acq_m["scenario_acquired"]) != sorted(acq_m["optimal_acquired"])
     assert acq_m["scenario_shortfall"] > 0.0
+
+
+def test_cascade_removed_and_retained_labels_match_the_computation() -> None:
+    """The cascade's reported sets must be the sets the model actually used.
+
+    `03_results.md` explains the zero starved fraction by naming which firms
+    were removed and which were left standing. The prior text had it exactly
+    backwards — it credited the *acquired* (i.e. removed) fabs with still
+    supplying the assembly stage. Labels alone are cheap, so this test
+    recomputes the cascade from the reported removed set and requires the
+    reported starved fraction to come back out.
+    """
+    scenario = metrics.DEFAULT_SCENARIO
+    chip_m = metrics.chip_metrics(scenario)
+    chain = chip.build_default_supply_chain()
+
+    # the removed set is the scenario's acquired-and-dismantled firms
+    assert chip_m["cascade_removed"] == list(scenario.acquired_firms)
+    assert chip_m["scenario_acquired"] == list(scenario.acquired_firms)
+
+    # the retained fabricators are the fabrication-stage firms NOT removed
+    all_fabs = {s.name for s in chain.suppliers if s.stage == "fabrication"}
+    assert set(chip_m["cascade_retained_fabs"]) == all_fabs - set(chip_m["cascade_removed"])
+    assert not set(chip_m["cascade_retained_fabs"]) & set(chip_m["cascade_removed"])
+
+    # and re-running the model on the reported removed set reproduces the number
+    starved, fraction = chip.cascade_starved(chain, chip_m["cascade_removed"])
+    assert sorted(starved) == chip_m["cascade_starved_firms"]
+    assert fraction == pytest.approx(chip_m["cascade_starved_fraction"])
+
+    # negative control: the retained set is a genuinely different removal, so
+    # the equality above is not true of any set we might have labelled
+    _, other_fraction = chip.cascade_starved(chain, chip_m["cascade_retained_fabs"])
+    assert other_fraction != pytest.approx(fraction)
 
 
 def test_optimal_scenario_has_zero_shortfall() -> None:

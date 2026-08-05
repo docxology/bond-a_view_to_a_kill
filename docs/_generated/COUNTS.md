@@ -7,7 +7,7 @@ coverage, and never hardcode them in prose elsewhere.
 
 | Metric | Value (measured) |
 |---|---|
-| Passing tests | 299 |
+| Passing tests | 300 |
 | Skipped / failed | 0 / 0 |
 | Line + branch coverage on `src/` | 99.17% |
 | Modules at 100% coverage | `acquisition`, `figures/plots`, `manuscript_variables`, `metrics`, `mission`, `race_analytics`, `race_market` |
