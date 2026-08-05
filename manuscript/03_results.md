@@ -5,7 +5,7 @@ All figures and numeric results below are generated from the pure core by
 
 ## Supply-chain monopoly
 
-![Choke-point betweenness by firm]({../output/figures/choke_points.png}){#fig:choke_points}
+![Choke-point betweenness by firm](../output/figures/choke_points.png){#fig:choke_points}
 
 Table: Supply-chain concentration under the ZORIN attack.
 
@@ -29,7 +29,7 @@ competitors are *removed*, but the market ZORIN owns keeps flowing
 
 ## Flood-the-mine water ingress
 
-![Flooded fraction of Main Strike over time]({../output/figures/flood_curve.png}){#fig:flood_curve}
+![Flooded fraction of Main Strike over time](../output/figures/flood_curve.png){#fig:flood_curve}
 
 At ${{CONFIG_FLOOD_INGRESS_RATE}}$ m$^3$/s into the `adit`, the Main Strike
 network ({{FLOOD_CHAMBERS}} chambers, {{FLOOD_TUNNELS}} tunnels,
@@ -41,7 +41,7 @@ ${{FLOOD_WATER_BALANCE}}$ — machine precision.
 
 ## Race-form cover analytics
 
-![Race-card form ratings by horse]({../output/figures/race_cover.png}){#fig:race_cover}
+![Race-card form ratings by horse](../output/figures/race_cover.png){#fig:race_cover}
 
 Over ${{RACE_RECORDS}}$ records (${{RACE_HORSES}}$ horses, ${{CONFIG_RACE_HALFLIFE}}$
 halflife), the strongest form is `{{RACE_TOP_HORSE}}`
@@ -55,7 +55,7 @@ scheme is caught (see the methodology analysis in Section [@sec:methods]).
 
 ## Monopoly acquisition
 
-![Optimal monopoly HHI by acquisition budget]({../output/figures/acquisition_curve.png}){#fig:acquisition_curve}
+![Optimal monopoly HHI by acquisition budget](../output/figures/acquisition_curve.png){#fig:acquisition_curve}
 
 Table: Acquisition optimizer on the default market (budget {{ACQ_BUDGET}}).
 
@@ -77,7 +77,7 @@ headline is the *scale* of the concentration a two-firm buy achieves.
 
 ## Valley impact
 
-![Silicon-valley fabricating capacity lost to the flood]({../output/figures/valley_impact.png}){#fig:valley_impact}
+![Silicon-valley fabricating capacity lost to the flood](../output/figures/valley_impact.png){#fig:valley_impact}
 
 Table: Urban blast-reach of the flood at the decision horizon.
 
@@ -91,10 +91,17 @@ Table: Urban blast-reach of the flood at the decision horizon.
 
 By the horizon the flood's groundwater reach has disabled {{VALLEY_INOPERABLE}}
 of {{VALLEY_FABS}} valley fabrication plants — {{VALLEY_LOSS}} of total
-fabricating capacity ([@fig:valley_impact]) — while
-`{{VALLEY_SURVIVORS}}` remain operable. The survivor list is the tell:
-ZORIN's own `zorin_fab` sits over the low-coupling `shaft_a`, protected from
-the very flood he releases.
+fabricating capacity ([@fig:valley_impact]) — leaving
+{{VALLEY_SURVIVOR_COUNT}} operable: `{{VALLEY_SURVIVORS}}`. ZORIN's own
+`zorin_fab` is among them, sitting over the low-coupling `shaft_a` and
+protected from the very flood he releases.
+
+The victim list (`{{VALLEY_VICTIMS}}`) is the more interesting result, because
+it cuts across ownership. Coupling geometry alone decides who drowns, so a
+plant ZORIN acquires can be destroyed by his own sabotage while an unacquired
+rival survives. The model therefore contradicts the scheme's own premise: the
+flood is not a precision instrument against competitors, and the acquisition
+plan and the sabotage plan are not automatically consistent with each other.
 
 ## Cover finance
 

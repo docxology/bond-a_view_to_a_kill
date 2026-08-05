@@ -90,6 +90,40 @@ def test_improvement_gain_nonnegative() -> None:
     assert improved.score > improved.baseline
 
 
+def test_greedy_spends_its_whole_budget() -> None:
+    """The greedy plan must contain exactly ``budget`` distinct firms.
+
+    A sentinel-initialised gain accumulator (``best_gain = -1.0``) silently
+    truncated the plan whenever every candidate gain fell below the sentinel;
+    this pins the invariant for every reachable budget.
+    """
+    chain = _default()
+    firms = acq.acquireable_firms(chain)
+    for budget in range(0, len(firms) + 1):
+        acquired, _ = acq.greedy_acquisition(chain, budget, "hhi")
+        assert len(acquired) == budget
+        assert len(set(acquired)) == budget
+        assert set(acquired) <= set(firms)
+        assert list(acquired) == sorted(acquired)
+
+
+def test_greedy_is_deterministic_and_scores_its_own_plan() -> None:
+    chain = _default()
+    first = acq.greedy_acquisition(chain, 2, "fab_share")
+    second = acq.greedy_acquisition(chain, 2, "fab_share")
+    assert first == second
+    acquired, score = first
+    assert score == pytest.approx(acq.acquisition_score(chain, acquired, "fab_share"))
+
+
+def test_greedy_full_budget_equals_buying_everything() -> None:
+    chain = _default()
+    firms = acq.acquireable_firms(chain)
+    acquired, score = acq.greedy_acquisition(chain, len(firms), "hhi")
+    assert acquired == firms
+    assert score == pytest.approx(acq.acquisition_score(chain, firms, "hhi"))
+
+
 def test_improvement_preserves_optimum() -> None:
     improved = acq.improvement(_default(), 2, "hhi")
     best, score = acq.optimal_acquisition(_default(), 2, "hhi")

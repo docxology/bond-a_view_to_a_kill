@@ -1,14 +1,30 @@
 # Methodology {#sec:methods}
 
-All three models are pure functions of fixed, documented datasets; no random
+All six models are pure functions of fixed, documented datasets; no random
 draws, no external state, no wall-clock dependence. This guarantees
-byte-identical reruns.
+byte-identical reruns. The three *structural* models come first
+(supply-chain graph, flood dynamics, race form); the three *decision* models
+that build on them follow (acquisition optimizer over the graph, valley-impact
+coupling over the flood, cover finance over the form ratings).
+
+## Implementation layering
+
+The six models live in six independent modules under
+`src/a_view_to_a_kill/`. A seventh module, `metrics.py`, fixes the mission
+scenario (which firms are acquired, the flood parameters, the cover boost, the
+bankroll) and evaluates each model once into a named metric group. `metrics.py`
+imports no protocol types, so the entire scientific pipeline — the models, the
+metric groups, the figures, and the manuscript token hydration — runs without
+`bond_api` installed. `mission.py` is the only module that imports the
+protocol; it wraps the same metric groups in the FROZEN `MissionProvider`
+lifecycle and registers them as gadgets. Section results are therefore
+identical whether reached through the protocol or through the pure core.
 
 ## Microchip supply-chain monopoly analysis
 
 The supply chain is a directed graph of firms $V$ (nodes) and supply links
 $E \subseteq V \times V$ (edges flowing forward through stages
-`wafer -> fabrication -> assembly -> distribution`). Each firm $v$ has a
+`{{CORE_STAGES}}`). Each firm $v$ has a
 throughput capacity $c_v$. The default dataset is a documented
 reconstruction of the mid-1980s semiconductor market (${{SC_NODES}}$ firms,
 ${{SC_LINKS}}$ links).
@@ -16,11 +32,11 @@ ${{SC_LINKS}}$ links).
 **Concentration.** Within a stage (or the whole graph), firm $v$'s capacity
 share is $s_v = c_v / \sum_u c_u$, and the Herfindahl-Hirschman index is
 $\mathrm{HHI} = 10000 \sum_v s_v^2$, ranging from $0$ (perfect competition)
-to $10000$ (monopoly). The default market opens at
-HHI ${{SC_HHI_BEFORE}}$.
+to $10000$ (monopoly) — the antitrust codification of concentration [@hhi].
+The default market opens at HHI ${{SC_HHI_BEFORE}}$.
 
 **Choke points.** Structural choke points are measured with Brandes'
-betweenness-centrality algorithm: a firm's betweenness is the fraction of
+betweenness-centrality algorithm [@brandes]: a firm's betweenness is the fraction of
 ordered node pairs for which it lies on a shortest directed supply path.
 Wafer sources carry zero betweenness by construction; the top choke point is
 `{{SC_TOP_CHOKE}}` (see [@fig:choke_points]).
@@ -31,7 +47,9 @@ pressure points.
 
 **Cascade failure.** Removing a set $R$ of firms (acquired-and-dismantled
 competitors), a downstream firm is *starved* if it has no directed supply path
-from any surviving wafer supplier. The starved fraction is
+from any surviving wafer supplier — a standard reachability construction on
+the supply digraph [@ast], and the mechanism the resilience literature calls
+upstream disruption propagation [@christopher2004]. The starved fraction is
 $\sum_{v \in S} 1 / |V|$.
 
 **The ZORIN attack.** ZORIN owns `zorin_fab` and `zorin_assembly`; by
@@ -56,10 +74,10 @@ simplified weir law
 
 $$ q_{ij} = C\, a_{ij}\, \sqrt{\max(h_i - h_j,\, 0)}, $$
 
-with discharge coefficient $C = 0.6$. Each timestep's tentative flows are
+with discharge coefficient $C = {{CORE_DISCHARGE_COEFF}}$. Each timestep's tentative flows are
 scaled so no chamber lends more water than it holds, making the scheme
 **exactly mass-conserving**. State evolves by explicit Euler with timestep
-$1$ s to horizon ${{CONFIG_FLOOD_HORIZON}}$ s at ingress
+${{CORE_EULER_DT}}$ s to horizon ${{CONFIG_FLOOD_HORIZON}}$ s at ingress
 ${{CONFIG_FLOOD_INGRESS_RATE}}$ m$^3$/s. A chamber is *flooded* once
 $w_i \geq \Omega_i$; `flooded_fraction` reports the share of chambers flooded
 at a time $t$. `critical_ingress` picks the single entry that floods the most
@@ -71,24 +89,30 @@ ${{FLOOD_TOTAL_VOLUME}}$ m$^3$ (see [@fig:flood_curve]).
 
 Raw race records are normalized to a seconds-per-furlong pace corrected for
 going (firm/soft) and weight carried:
-$\tau = (t - g\, d - \max(w - 126,0)\,\epsilon\, d)/d$. The speed index is the
-seconds saved per furlong versus par, $14.0 - \tau$. A horse's form rating is
+$\tau = (t - g\, d - \max(w - {{CORE_BASE_WEIGHT}},0)\,\epsilon\, d)/d$, with
+$\epsilon = {{CORE_WEIGHT_SEC_PER_LB}}$ s per furlong per pound over the base
+weight. The speed index is the seconds saved per furlong versus par,
+${{CORE_PAR_SECONDS}} - \tau$. A horse's form rating is
 the exponentially-weighted moving average of its speed indices, where a race
 `age` before the newest is weighted $0.5^{\text{age}/\text{halflife}}$
 (halflife ${{CONFIG_RACE_HALFLIFE}}$). Win probabilities follow a softmax
 over ratings.
 
 **Cover risk.** The stewards flag a horse whose performance improves by more
-than $\theta = 1.0$ speed-index units above its own baseline. With
+than $\theta = {{CORE_DETECTION_THRESHOLD}}$ speed-index units above its own
+baseline. With
 $n$ races and natural race-to-race variability $\sigma$, the standard error of
 the mean performance is $\sigma/\sqrt{n}$, so applying a boost $b$ gives a
 detection risk
 
 $$ \mathrm{risk}(b) = \Phi\!\left(\frac{b - \theta}{\sigma/\sqrt{n}}\right), $$
 
-the probability a normal draw with mean $b$ clears the threshold. `cover_viability`
-returns `win_delta`, `detection_risk`, and
-`expected_value = win_delta * PURSE - risk * DETECTION_PENALTY`. For the
+the probability a normal draw with mean $b$ clears the threshold — the
+detection-theoretic reading of stewards' scrutiny [@greenswets1966].
+`cover_viability` returns `win_delta`, `detection_risk`, and
+`expected_value = win_delta * PURSE - risk * DETECTION_PENALTY`, with
+PURSE = {{CORE_PURSE}} and DETECTION_PENALTY = {{CORE_DETECTION_PENALTY}}
+(both fixed in `race_analytics.py`). For the
 ${{CONFIG_COVER_BOOST}}$ boost to Pegasus (with
 $\sigma = {{CONFIG_COVER_SIGMA}}$) the risk is ${{COVER_DETECTION_RISK}}$ and
 expected value ${{COVER_EXPECTED_VALUE}}$ — a sustainable cover — whereas a
@@ -116,22 +140,28 @@ ZORIN's sabotage is not the flood but its *consequence*. Each surface
 fabrication plant (a `SurfaceFab`) is hydraulically coupled to a mine chamber;
 water in that chamber raises the local water table by the fab's `leakage`
 coefficient, and the fab becomes inoperable when that table reaches its
-`foundation_elevation`:
+`foundation_elevation` — the coarse form of the groundwater-inundation damage
+relation [@kreibich2008]:
 
 $$ \mathrm{table}_{f}(t) = \ell_f \cdot h_{c(f)}(t), \qquad \text{inoperable if }
    \mathrm{table}_{f}(t) \ge z_f. $$
 
 `valley_capacity_loss` reports the fraction of total fabricating capacity
 inoperable by a decision time — for the default scenario {{VALLEY_INOPERABLE}}
-of {{VALLEY_FABS}} fabs ({{VALLEY_LOSS}} of capacity) by the horizon, while
-`{{VALLEY_SURVIVORS}}` survive because ZORIN built his own plant over the
-low-coupling, high-separation chamber (see [@fig:valley_impact]).
+of {{VALLEY_FABS}} fabs ({{VALLEY_LOSS}} of capacity) by the horizon
+(see [@fig:valley_impact]). The {{VALLEY_SURVIVOR_COUNT}} survivors are
+`{{VALLEY_SURVIVORS}}`: `zorin_fab` endures because it sits over the
+low-coupling, high-separation `shaft_a`, which is the outcome the scheme
+intends. The model does not, however, reproduce a clean rivals-only wipeout —
+the survivor and victim sets are determined purely by coupling geometry, not
+by ownership.
 
 ## Racing betting market and cover finance
 
 The cover is financed by betting on the controlled horse. `market_odds`
 converts true win probabilities into decimal odds under a bookmaker overround
-$\nu = {{CONFIG_MARKET_OVERROUND}}$, so the market's implied probabilities sum
+$\nu = {{CONFIG_MARKET_OVERROUND}}$ — the standard way an outcome model is
+priced against a book [@dixon] — so the market's implied probabilities sum
 to $\nu$: $q_i = p_i \nu$, $\mathrm{odds}_i = 1/q_i$. Against that *honest*
 book, `cover_bankroll` prices the manipulated horse using its boosted true
 probability $p^\ast$: the value edge is $p^\ast \mathrm{odds} - 1$, the

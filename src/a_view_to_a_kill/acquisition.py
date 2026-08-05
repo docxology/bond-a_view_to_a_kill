@@ -47,7 +47,7 @@ class AcquisitionResult:
     """A chosen acquisition plan and its measured objective.
 
     Attributes:
-        acquired: The inductor firms ZORIN buys, in deterministic order.
+        acquired: The independent firms ZORIN buys, in deterministic order.
         objective: The objective key this plan was scored on.
         score: The objective value for this plan.
         baseline: The objective value for buying nothing.
@@ -112,12 +112,16 @@ def optimal_acquisition(
     baseline = score_func(())
     if budget == 0:
         return (), float(baseline)
-    best_score = -1.0
+    # ``firms`` is name-sorted, so ``combinations`` yields subsets in
+    # lexicographic order; keeping only strict improvements therefore retains
+    # the lexicographically smallest maximizer. The sentinel must be -inf, not
+    # a magic -1.0: objectives are not required to be non-negative.
+    best_score = float("-inf")
     best_set: tuple[str, ...] = ()
     for combo in combinations(firms, budget):
-        score = score_func(combo)
-        if score > best_score or (score == best_score and not best_set):
-            best_score = float(score)
+        score = float(score_func(combo))
+        if score > best_score:
+            best_score = score
             best_set = combo
     return best_set, best_score
 
@@ -128,28 +132,25 @@ def greedy_acquisition(
     objective: str = "hhi",
 ) -> tuple[tuple[str, ...], float]:
     """Deterministic greedy baseline: repeatedly add the firm with the largest
-    score gain, breaking name-ties by order."""
+    score gain, breaking ties by ascending firm name.
+
+    ``_validate_budget`` guarantees ``budget <= len(acquireable_firms(chain))``,
+    so a candidate firm is always available on every one of the ``budget``
+    rounds — the loop needs no early-exit guard. Selecting the maximum
+    *candidate score* is equivalent to selecting the maximum *gain* (the
+    incumbent score is constant within a round) and avoids a magic sentinel
+    that would silently truncate the plan when every gain is negative.
+    """
     _validate_budget(chain, budget)
     score_func = _selected(chain, objective)
     firms = acquireable_firms(chain)
     current: tuple[str, ...] = ()
     score = float(score_func(()))
     for _ in range(budget):
-        best_gain = -1.0
-        best_firm: str | None = None
-        for firm in firms:
-            if firm in current:
-                continue
-            candidate = tuple(sorted(current + (firm,)))
-            candidate_score = score_func(candidate)
-            gain = float(candidate_score) - score
-            if gain > best_gain or (gain == best_gain and (best_firm is None or firm < best_firm)):
-                best_gain = gain
-                best_firm = firm
-        if best_firm is None:
-            break
-        current = tuple(sorted(current + (best_firm,)))
-        score = float(score_func(current))
+        scored = [(float(score_func(tuple(sorted(current + (firm,))))), firm) for firm in firms if firm not in current]
+        scored.sort(key=lambda item: (-item[0], item[1]))
+        score, chosen = scored[0]
+        current = tuple(sorted(current + (chosen,)))
     return current, score
 
 

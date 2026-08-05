@@ -26,8 +26,10 @@ central scheme through six pure, infrastructure-free domain modules:
 4. **Valley impact / urban sabotage** (`valley_impact.py`) — couples the
    flood to the fabs above: rising groundwater disables
    {{VALLEY_INOPERABLE}} of {{VALLEY_FABS}} valley fabs, {{VALLEY_LOSS}} of
-   fabricating capacity, while ZORIN's own fab (`{{VALLEY_SURVIVORS}}`)
-   survives.
+   fabricating capacity. ZORIN's own plant is among the
+   {{VALLEY_SURVIVOR_COUNT}} survivors (`{{VALLEY_SURVIVORS}}`) — but so is one
+   rival, and one plant ZORIN acquires is destroyed, so the sabotage is a
+   blunter instrument than the scheme assumes.
 5. **Horse-race form analytics** (`race_analytics.py`) — normalized speed
    indices, EWMA ratings, softmax win probabilities, and a
    signal-detection cover-risk model. A subtle {{CONFIG_COVER_BOOST}}

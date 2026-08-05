@@ -6,7 +6,7 @@
 
 paper:
   title: "A View to a Kill: ZORIN — Special-Agent Mission Software"
-  subtitle: "Microchip Supply-Chain Security, Flood-The-Mine Water Ingress, and Race-Form Cover Analytics"
+  subtitle: "Six Deterministic Models of the ZORIN Scheme: Supply-Chain Choke Points, Budgeted Monopoly Acquisition, Flood-The-Mine Water Ingress, Valley Capacity Loss, Race-Form Cover Risk, and Cover Finance"
   version: "0.1.0"
   date: "2026-08-04"
 
@@ -21,11 +21,16 @@ keywords:
   - "microchip supply-chain security"
   - "monopoly choke points"
   - "herfindahl-hirschman index"
+  - "betweenness centrality"
+  - "budgeted acquisition optimization"
   - "water-ingress dynamics"
   - "mine flooding simulation"
+  - "groundwater inundation damage"
   - "horse-race form analytics"
   - "cover-operation modeling"
   - "signal-detection theory"
+  - "kelly criterion"
+  - "betting-market pricing"
   - "reproducible research"
   - "deterministic simulation"
 

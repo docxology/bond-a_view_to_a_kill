@@ -1,31 +1,49 @@
 """ZORIN — the *A View to a Kill* (1985) mission provider for BOND-API.
 
-This module is the thin adapter between the film's pure domain core
-(:mod:`a_view_to_a_kill.chip_supply_chain`, :mod:`a_view_to_a_kill.mine_flood`,
-:mod:`a_view_to_a_kill.race_analytics`) and the FROZEN
+This module is the thin adapter between the film's pure domain core (the six
+concept modules, aggregated by :mod:`a_view_to_a_kill.metrics`) and the FROZEN
 :class:`bond_api.protocol.MissionProvider` contract. It is the only module in
-this package that imports ``bond_api`` — the pure core stays importable
-without it (fallback if the path dependency ever fails).
+this package that imports ``bond_api`` — everything else, including the
+manuscript pipeline and the figure renderers, depends on ``metrics`` instead,
+so the pure core genuinely stays importable when the ``bond-api`` path
+dependency is unavailable (pinned by ``tests/test_bond_api_fallback.py``).
 
-Discovery contract: the orchestrator loads the provider by slug
-``a_view_to_a_kill`` and binds it; this module exposes ``MissionProvider`` at
-top level under that stable name. Gadgets are registered on a module-level
-:class:`bond_api.registry.GadgetRegistry` so the orchestrator can pull
-computed mission metrics without re-running the stages.
+Public surface — FROZEN, consumed by bond-cli, the coordinator reconcile, and
+the orchestrator; do not rename or re-shape:
+
+* ``MissionProvider`` — ``brief`` / ``recon`` / ``plan`` / ``execute`` /
+  ``debrief``, discovered by the slug ``a_view_to_a_kill``.
+* ``gadget_registry`` — a module-level :class:`bond_api.registry.GadgetRegistry`
+  carrying six zero-argument metric gadgets, so the orchestrator can pull
+  computed mission metrics without re-running the stages.
+* ``run_mission_metrics`` and the scenario constants (``SEED``,
+  ``FLOOD_PARAMS``, ``ACQUIRED_FIRMS``, ``COVER_BOOST``, ``COVER_SIGMA``,
+  ``ACQUISITION_BUDGET``, ``COVER_BANKROLL``, ``PACKAGE_VERSION``), re-exported
+  from :mod:`a_view_to_a_kill.metrics` so existing importers keep working.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
 
-from a_view_to_a_kill import acquisition as acq
-from a_view_to_a_kill import chip_supply_chain as chip
-from a_view_to_a_kill import mine_flood as flood
-from a_view_to_a_kill import race_analytics as race
-from a_view_to_a_kill import race_market as mkt
-from a_view_to_a_kill import valley_impact as valley
+from a_view_to_a_kill.metrics import (
+    ACQUIRED_FIRMS,
+    ACQUISITION_BUDGET,
+    COVER_BANKROLL,
+    COVER_BOOST,
+    COVER_SIGMA,
+    FLOOD_PARAMS,
+    PACKAGE_VERSION,
+    SEED,
+    acquisition_metrics,
+    chip_metrics,
+    flood_metrics,
+    market_metrics,
+    race_metrics,
+    run_mission_metrics,
+    valley_metrics,
+)
 from bond_api.protocol import (
     Asset,
     Constraint,
@@ -41,28 +59,25 @@ from bond_api.protocol import (
 )
 from bond_api.registry import GadgetRegistry
 
-__all__ = ["MissionProvider", "gadget_registry", "run_mission_metrics", "PACKAGE_VERSION", "SEED"]
-
-#: Package software version, surfaced in provenance.
-PACKAGE_VERSION = "0.1.0"
-
-#: Deterministic mission seed (the film's release year disables randomness).
-SEED = 1985
-
-#: Default flood scenario parameters for the execute stage.
-FLOOD_PARAMS = flood.FloodParams(ingress_rate=10.0, horizon=900.0, dt=1.0)
-
-#: Firms ZORIN acquires to complete his silicon-valley monopoly.
-ACQUIRED_FIRMS = ("amd_fab", "nec_fab")
-
-#: Cover-operation parameters for Pegasus in the execute stage.
-COVER_BOOST = 0.2
-COVER_SIGMA = 0.5
-
-#: Acquisition budget (number of independent fabricators to buy) and the
-#: cover-operation bankroll backing the betting market.
-ACQUISITION_BUDGET = 2
-COVER_BANKROLL = 100_000.0
+__all__ = [
+    "MissionProvider",
+    "gadget_registry",
+    "run_mission_metrics",
+    "chip_metrics",
+    "flood_metrics",
+    "race_metrics",
+    "acquisition_metrics",
+    "valley_metrics",
+    "market_metrics",
+    "PACKAGE_VERSION",
+    "SEED",
+    "FLOOD_PARAMS",
+    "ACQUIRED_FIRMS",
+    "COVER_BOOST",
+    "COVER_SIGMA",
+    "ACQUISITION_BUDGET",
+    "COVER_BANKROLL",
+]
 
 #: Gadgets registered for this film (deterministic zero-arg callables).
 gadget_registry = GadgetRegistry()
@@ -77,118 +92,6 @@ gadget_registry.register(
         "market_metrics": lambda: market_metrics(),
     },
 )
-
-
-def chip_metrics() -> dict[str, Any]:
-    """Computed supply-chain security metrics for the ZORIN monopoly attack."""
-    chain = chip.build_default_supply_chain()
-    return {
-        "nodes": len(chain.suppliers),
-        "links": len(chain.links),
-        "hhi_before": chip.hhi(chain),
-        "hhi_after": chip.post_elimination_hhi(chain, ACQUIRED_FIRMS),
-        "zorin_fab_share": chip.monopoly_share(chain, ACQUIRED_FIRMS)["fabrication"],
-        "top_choke_points": chip.top_choke_points(chain, 3),
-        "cascade_starved_fraction": chip.cascade_starved(chain, list(ACQUIRED_FIRMS))[1],
-    }
-
-
-def flood_metrics() -> dict[str, Any]:
-    """Computed mine-flood water-ingress metrics for the ZORIN sabotage."""
-    mine = flood.build_default_mine()
-    sim = flood.simulate_flood(mine, ("adit",), FLOOD_PARAMS)
-    return {
-        "chambers": len(mine.chambers),
-        "tunnels": len(mine.tunnels),
-        "total_volume": float(sum(c.volume for c in mine.chambers)),
-        "flooded_fraction": flood.flooded_fraction(sim, FLOOD_PARAMS.horizon),
-        "vault_flood_time": flood.flooded_at(sim, "vault"),
-        "critical_ingress": flood.critical_ingress(mine, ("adit", "shaft_a", "shaft_b"), FLOOD_PARAMS),
-        "water_balance_error": flood.water_balance_error(sim),
-    }
-
-
-def race_metrics() -> dict[str, Any]:
-    """Computed race-form analytics and cover-operation risk metrics."""
-    ratings = race.form_ratings(race.FORM_TABLE)
-    rating_map = {name: hr.rating for name, hr in ratings.items()}
-    probs = race.win_probabilities(ratings)
-    cover = race.cover_viability(rating_map, race.FORM_TABLE, "Pegasus", COVER_BOOST, COVER_SIGMA)
-    return {
-        "horses": len(ratings),
-        "records": len(race.FORM_TABLE),
-        "ratings": {name: hr.rating for name, hr in ratings.items()},
-        "win_probabilities": probs,
-        "pegasus_win_delta": cover["win_delta"],
-        "detection_risk": cover["detection_risk"],
-        "expected_value": cover["expected_value"],
-    }
-
-
-def acquisition_metrics() -> dict[str, Any]:
-    """Computed monopoly-acquisition optimization metrics."""
-    chain = chip.build_default_supply_chain()
-    improved = acq.improvement(chain, ACQUISITION_BUDGET, "hhi")
-    _, optimal_score = acq.optimal_acquisition(chain, ACQUISITION_BUDGET, "hhi")
-    _, greedy_score = acq.greedy_acquisition(chain, ACQUISITION_BUDGET, "hhi")
-    return {
-        "budget": ACQUISITION_BUDGET,
-        "acquireable": list(acq.acquireable_firms(chain)),
-        "optimal_acquired": list(improved.acquired),
-        "optimal_hhi": improved.score,
-        "baseline_hhi": improved.baseline,
-        "hhi_gain": improved.gain,
-        "greedy_hhi": greedy_score,
-        "regret": float(optimal_score - greedy_score),
-    }
-
-
-def valley_metrics() -> dict[str, Any]:
-    """Computed valley-impact (urban sabotage) coupling metrics."""
-    mine = flood.build_default_mine()
-    sim = flood.simulate_flood(mine, ("adit",), FLOOD_PARAMS)
-    fabs = valley.build_default_valley()
-    report = valley.valley_report(mine, sim, fabs, FLOOD_PARAMS.horizon)
-    return {
-        "fabs": len(fabs),
-        "capacity_loss": report["capacity_loss"],
-        "inoperable": report["inoperable"],
-        "victims": report["victims"],
-        "survivors": report["survivors"],
-    }
-
-
-def market_metrics() -> dict[str, Any]:
-    """Computed racing betting-market / cover-finance metrics."""
-    ratings = race.form_ratings(race.FORM_TABLE)
-    probs = {name: hr.rating for name, hr in ratings.items()}
-    plan = mkt.cover_bankroll(probs, "Pegasus", COVER_BOOST, COVER_BANKROLL)
-    return {
-        "horse": plan.horse,
-        "true_probability": plan.true_probability,
-        "market_implied_probability": plan.market_implied_probability,
-        "value_edge": plan.value_edge,
-        "kelly_fraction": plan.kelly_fraction,
-        "kelly_stake": plan.kelly_stake,
-        "expected_profit": plan.expected_profit,
-    }
-
-
-def run_mission_metrics() -> dict[str, Any]:
-    """Aggregate the six concept metric groups into one deterministic map.
-
-    This is the canonical result payload the ``execute`` stage reports, kept
-    separate from the provider so tests and figures can call it directly
-    without driving a mission.
-    """
-    return {
-        "chip": chip_metrics(),
-        "flood": flood_metrics(),
-        "race": race_metrics(),
-        "acquisition": acquisition_metrics(),
-        "valley": valley_metrics(),
-        "market": market_metrics(),
-    }
 
 
 def _input_hash(plan: MissionPlan) -> str:
@@ -206,19 +109,42 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
     film = "a_view_to_a_kill"
 
     def brief(self) -> MissionBrief:
-        """Declare the ZORIN mission: three objectives over the three concepts."""
+        """Declare the ZORIN mission: six objectives over the three film pieces.
+
+        Asset payloads are *measured* from the pure core rather than written as
+        literals, so a change to a default dataset cannot leave the brief
+        quietly describing a market, mine, or race card that no longer exists.
+        """
+        chip_m = chip_metrics()
+        flood_m = flood_metrics()
+        race_m = race_metrics()
         return MissionBrief(
             film=self.film,
             codename="ZORIN",
             objectives=(
                 "map microchip supply-chain monopoly choke points",
+                "optimize the budgeted acquisition that corners the market",
                 "model flood-the-mine water-ingress dynamics",
+                "couple the flood to surface-fab capacity loss in the valley",
                 "score horse-race form analytics for the cover operation",
+                "price the cover's betting-market position and staking",
             ),
             assets=(
-                Asset(kind="dataset", name="supply_chain", payload={"nodes": 12, "links": 18}),
-                Asset(kind="network", name="main_strike", payload={"chambers": 8, "tunnels": 10}),
-                Asset(kind="form", name="race_card", payload={"horses": 5, "races": 4}),
+                Asset(
+                    kind="dataset",
+                    name="supply_chain",
+                    payload={"nodes": chip_m["nodes"], "links": chip_m["links"]},
+                ),
+                Asset(
+                    kind="network",
+                    name="main_strike",
+                    payload={"chambers": flood_m["chambers"], "tunnels": flood_m["tunnels"]},
+                ),
+                Asset(
+                    kind="form",
+                    name="race_card",
+                    payload={"horses": race_m["horses"], "records": race_m["records"]},
+                ),
             ),
             constraints=(
                 Constraint(kind="determinism", detail="no random draws, no wall-clock dependence"),
@@ -228,21 +154,38 @@ class MissionProvider:  # noqa: N801 — class name fixed by the discovery contr
         )
 
     def recon(self, request: ReconRequest) -> ReconReport:
-        """Survey the request, the three datasets, and the determinism constraint."""
+        """Survey the request, the three datasets, and the determinism constraint.
+
+        Like :meth:`brief`, every quantity in a finding is measured from the
+        pure core at call time — no hand-written counts that could drift.
+        """
+        chip_m = chip_metrics()
+        flood_m = flood_metrics()
+        race_m = race_metrics()
+        races_each = race_m["records"] // race_m["horses"]
         return ReconReport(
             findings=(
                 Finding(label="goal", detail=request.goal),
                 Finding(
                     label="supply_chain",
-                    detail="documented 1985 microchip market graph: 12 firms, 18 supply links",
+                    detail=(
+                        f"documented 1985 microchip market graph: {chip_m['nodes']} firms, "
+                        f"{chip_m['links']} supply links"
+                    ),
                 ),
                 Finding(
                     label="mine",
-                    detail="Main Strike network: 8 chambers, 10 tunnels, 9100 m^3 total volume",
+                    detail=(
+                        f"Main Strike network: {flood_m['chambers']} chambers, "
+                        f"{flood_m['tunnels']} tunnels, {flood_m['total_volume']:.0f} m^3 total volume"
+                    ),
                 ),
                 Finding(
                     label="race_card",
-                    detail="Epsom-style form card: 5 horses, 4 races each",
+                    detail=(
+                        f"Epsom-style form card: {race_m['horses']} horses, {races_each} races each "
+                        f"({race_m['records']} records)"
+                    ),
                 ),
                 Finding(label="constraints", detail="fully deterministic; metrics computed, not stubbed"),
             )

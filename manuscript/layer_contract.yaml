@@ -3,9 +3,14 @@
 surfaces:
   pure_core:
     modules:
+      # structural models
       - src/a_view_to_a_kill/chip_supply_chain.py
       - src/a_view_to_a_kill/mine_flood.py
       - src/a_view_to_a_kill/race_analytics.py
+      # decision models built on the structural ones
+      - src/a_view_to_a_kill/acquisition.py      # over chip_supply_chain
+      - src/a_view_to_a_kill/valley_impact.py    # over mine_flood
+      - src/a_view_to_a_kill/race_market.py      # over race_analytics
     rules:
       - "no bond_api imports (importable standalone)"
       - "no infrastructure.* imports"

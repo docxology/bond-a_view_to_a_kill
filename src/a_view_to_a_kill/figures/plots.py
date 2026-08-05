@@ -23,10 +23,11 @@ matplotlib.use("Agg")  # deterministic, headless-safe backend
 import matplotlib.pyplot as plt  # noqa: E402  (backend configured above)
 
 from a_view_to_a_kill import acquisition as acq
+from a_view_to_a_kill import chip_supply_chain as chip
+from a_view_to_a_kill import metrics
 from a_view_to_a_kill import mine_flood as flood
 from a_view_to_a_kill import race_analytics as race
 from a_view_to_a_kill import valley_impact as valley
-from a_view_to_a_kill import mission
 
 __all__ = [
     "render_choke_points",
@@ -40,8 +41,8 @@ __all__ = [
 
 def render_choke_points(out_path: str | Path) -> Path:
     """Bar chart of betweenness centrality per supply-chain firm."""
-    chain = mission.chip.build_default_supply_chain()
-    centrality = mission.chip.betweenness_centrality(chain)
+    chain = chip.build_default_supply_chain()
+    centrality = chip.betweenness_centrality(chain)
     names = sorted(centrality, key=lambda n: -centrality[n])
     values = [centrality[n] for n in names]
 
@@ -58,7 +59,7 @@ def render_choke_points(out_path: str | Path) -> Path:
 
 def render_flood(out_path: str | Path) -> Path:
     """Flooded-fraction over time for the default Main Strike scenario."""
-    params = mission.FLOOD_PARAMS
+    params = metrics.FLOOD_PARAMS
     sim = flood.simulate_flood(flood.build_default_mine(), ("adit",), params)
     fractions = [flood.flooded_fraction(sim, t) for t in sim.times]
 
@@ -92,7 +93,7 @@ def render_cover(out_path: str | Path) -> Path:
 
 def render_acquisition_curve(out_path: str | Path) -> Path:
     """Optimal monopoly HHI against the acquisition budget (0..max)."""
-    chain = mission.chip.build_default_supply_chain()
+    chain = chip.build_default_supply_chain()
     max_budget = len(acq.acquireable_firms(chain))
     budgets = list(range(max_budget + 1))
     hhis = [acq.optimal_acquisition(chain, b, "hhi")[1] for b in budgets]
@@ -112,7 +113,7 @@ def render_acquisition_curve(out_path: str | Path) -> Path:
 def render_valley_impact(out_path: str | Path) -> Path:
     """Valley fabricating-capacity loss over time from the flood's urban reach."""
     mine = flood.build_default_mine()
-    sim = flood.simulate_flood(mine, ("adit",), mission.FLOOD_PARAMS)
+    sim = flood.simulate_flood(mine, ("adit",), metrics.FLOOD_PARAMS)
     fabs = valley.build_default_valley()
     losses = [valley.valley_capacity_loss(mine, sim, fabs, t) for t in sim.times]
 

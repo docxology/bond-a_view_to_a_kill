@@ -10,6 +10,8 @@ import pytest
 import yaml
 
 from a_view_to_a_kill import manuscript_variables as msv
+from a_view_to_a_kill import mission
+from a_view_to_a_kill import race_analytics as race
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 MANUSCRIPT = PACKAGE_ROOT / "manuscript"
@@ -69,8 +71,57 @@ def test_generate_variables_now_override_is_deterministic() -> None:
 
 def test_metrics_are_live_not_stale() -> None:
     variables = msv.generate_variables()
-    # flood fraction must be a real partial-flood value from the simulation
-    assert "0." in variables["FLOOD_FRACTION"]
+    # The flood fraction must be a real *partial* flood from the simulation:
+    # strictly between "nothing flooded" and "everything flooded". A string
+    # containment check would pass on a hollow 0.000, so parse and bound it.
+    fraction = float(variables["FLOOD_FRACTION"])
+    assert 0.0 < fraction < 1.0
+    # The top-rated horse must be one of the horses actually on the card.
+    assert variables["RACE_TOP_HORSE"] in {r.horse for r in race.FORM_TABLE}
+    assert float(variables["RACE_TOP_RATING"]) > 0.0
+
+
+def test_strict_gate_rejects_each_empty_metric_group() -> None:
+    """The require_outputs gate must fail on *any* empty group, not only all.
+
+    Uses a really-computed payload with one group blanked — no mocking, the
+    remaining five groups are the genuine values from the pure core.
+    """
+    live = mission.run_mission_metrics()
+    for group in msv.REQUIRED_METRIC_GROUPS:
+        degraded = dict(live)
+        degraded[group] = {}
+        with pytest.raises(ValueError, match="mission metric groups are empty"):
+            msv.generate_variables(metrics=degraded, require_outputs=True)
+
+
+def test_draft_mode_skips_the_gate_and_still_renders_present_groups() -> None:
+    """require_outputs=False is the --allow-draft path: no gate, real values."""
+    live = mission.run_mission_metrics()
+    variables = msv.generate_variables(metrics=live, require_outputs=False)
+    assert variables["SC_NODES"] == str(live["chip"]["nodes"])
+    assert variables["VALLEY_FABS"] == str(live["valley"]["fabs"])
+
+
+def test_strict_gate_accepts_the_live_payload() -> None:
+    """Positive control: the same gate passes on the undegraded payload."""
+    live = mission.run_mission_metrics()
+    variables = msv.generate_variables(metrics=live, require_outputs=True)
+    assert variables["SC_NODES"] == str(live["chip"]["nodes"])
+
+
+def test_generate_variables_rejects_non_mapping_paper_section(tmp_path: Path) -> None:
+    bogus = tmp_path / "config.yaml"
+    bogus.write_text("paper: not-a-mapping\nexperiment: {}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="'paper' section"):
+        msv.generate_variables(config_path=bogus)
+
+
+def test_generate_variables_rejects_non_mapping_experiment_section(tmp_path: Path) -> None:
+    bogus = tmp_path / "config.yaml"
+    bogus.write_text("paper: {title: t}\nexperiment: not-a-mapping\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="'experiment' section"):
+        msv.generate_variables(config_path=bogus)
 
 
 def test_every_manuscript_token_is_generated() -> None:

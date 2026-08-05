@@ -6,12 +6,14 @@ deterministic mission metrics computed by the pure domain core. Metrics are
 never hand-authored in prose: they flow through this module so the manuscript
 cannot drift from the code.
 
-This module is intentionally ``bond_api``-free: it imports only the three
-concept modules (and mission's metric helpers, which likewise import no
-protocol types), so the manuscript pipeline also works in the fallback where
-the path dependency is unavailable. The consuming orchestrator is
-``scripts/z_generate_manuscript_variables.py`` (thin wrapper); the live
-cross-reference gate lives in ``tests/test_manuscript_variables.py``.
+This module is ``bond_api``-free: it imports the pure concept modules and
+:mod:`a_view_to_a_kill.metrics` (which is itself protocol-free), never
+:mod:`a_view_to_a_kill.mission`. That is what makes the manuscript pipeline
+work in the fallback where the ``bond-api`` path dependency is unavailable —
+``tests/test_bond_api_fallback.py`` proves it rather than asserting it. The
+consuming orchestrator is ``scripts/z_generate_manuscript_variables.py`` (thin
+wrapper); the live cross-reference gate lives in
+``tests/test_manuscript_variables.py``.
 """
 
 from __future__ import annotations
@@ -24,7 +26,10 @@ from typing import Any
 
 import yaml
 
-from a_view_to_a_kill import mission
+from a_view_to_a_kill import chip_supply_chain as chip_module
+from a_view_to_a_kill import metrics as metrics_module
+from a_view_to_a_kill import mine_flood as flood_module
+from a_view_to_a_kill import race_analytics as race_module
 
 __all__ = ["generate_variables", "load_manuscript_config", "resolve_manuscript_tree"]
 
@@ -52,21 +57,37 @@ def _fmt(value: object, digits: int = 4) -> str:
     return str(value)
 
 
+#: The metric groups :func:`generate_variables` requires to be populated.
+REQUIRED_METRIC_GROUPS = ("chip", "flood", "race", "acquisition", "valley", "market")
+
+
 def generate_variables(
     *,
     config_path: str | Path | None = None,
     require_outputs: bool = True,
     now: datetime | None = None,
+    metrics: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     """Compute the ``{{TOKEN}}`` → value mapping for the ZORIN manuscript.
 
     Args:
         config_path: Override for ``manuscript/config.yaml``.
-        require_outputs: When True (default), verify the computed metric
-            groups are populated — the strict-mode gate that the pipeline
-            asserts before rendering.
+        require_outputs: When True (default), verify that **every** metric
+            group in :data:`REQUIRED_METRIC_GROUPS` is populated — the
+            strict-mode gate the pipeline asserts before rendering. Any one
+            empty group fails; this is deliberately an ``any``-style check,
+            because a single silently-empty group would otherwise render a
+            manuscript with hollow numbers.
         now: Optional clock override for a fully deterministic timestamp
             (tests pass a fixed value).
+        metrics: Optional pre-computed metric payload (same shape as
+            :func:`a_view_to_a_kill.metrics.run_mission_metrics`). Defaults to
+            computing it live; supplying it lets the strict gate be exercised
+            against real degraded payloads without any mocking.
+
+    Raises:
+        ValueError: If the config sections are malformed, a required metric
+            group is missing/empty under ``require_outputs``.
     """
     config = load_manuscript_config(config_path)
     paper = config.get("paper", {})
@@ -76,20 +97,22 @@ def generate_variables(
     if not isinstance(experiment, dict):
         raise ValueError("manuscript config 'experiment' section must be a mapping")
 
-    metrics = mission.run_mission_metrics()
-    if require_outputs and not metrics["chip"] and not metrics["flood"] and not metrics["race"]:
-        raise ValueError("mission metrics are empty — the pure core failed to compute")
+    computed = metrics_module.run_mission_metrics() if metrics is None else metrics
+    if require_outputs:
+        empty = [group for group in REQUIRED_METRIC_GROUPS if not computed.get(group)]
+        if empty:
+            raise ValueError(f"mission metric groups are empty — the pure core failed to compute: {empty}")
 
-    chip_m = metrics["chip"]
-    flood_m = metrics["flood"]
-    race_m = metrics["race"]
-    acq_m = metrics["acquisition"]
-    valley_m = metrics["valley"]
-    market_m = metrics["market"]
+    chip_m = computed["chip"]
+    flood_m = computed["flood"]
+    race_m = computed["race"]
+    acq_m = computed["acquisition"]
+    valley_m = computed["valley"]
+    market_m = computed["market"]
 
-    monkey = race_m["ratings"]
-    top_rating = max(monkey.values())
-    top_horse = max(monkey, key=monkey.get)
+    ratings = race_m["ratings"]
+    top_horse = max(sorted(ratings), key=lambda name: ratings[name])
+    top_rating = ratings[top_horse]
 
     stamp = (now or datetime.now(timezone.utc)).isoformat(timespec="seconds")
 
@@ -141,9 +164,11 @@ def generate_variables(
         "VALLEY_INOPERABLE": str(valley_m["inoperable"]),
         "VALLEY_VICTIMS": ", ".join(valley_m["victims"]),
         "VALLEY_SURVIVORS": ", ".join(valley_m["survivors"]),
+        "VALLEY_SURVIVOR_COUNT": str(len(valley_m["survivors"])),
         # computed race/cover metrics
         "RACE_HORSES": str(race_m["horses"]),
         "RACE_RECORDS": str(race_m["records"]),
+        "RACE_RACES_PER_HORSE": str(race_m["records"] // race_m["horses"]),
         "RACE_TOP_HORSE": top_horse,
         "RACE_TOP_RATING": _fmt(top_rating, 3),
         "RACE_PEGASUS_PROB": _fmt(race_m["win_probabilities"]["Pegasus"], 3),
@@ -158,6 +183,18 @@ def generate_variables(
         "MARKET_KELLY": _fmt(market_m["kelly_fraction"], 4),
         "MARKET_STAKE": _fmt(market_m["kelly_stake"], 0),
         "MARKET_PROFIT": _fmt(market_m["expected_profit"], 0),
+        # model constants read straight off the pure core, so prose can cite
+        # them without a hand-authored numeral that could silently drift
+        "CORE_DISCHARGE_COEFF": _fmt(flood_module.DEFAULT_DISCHARGE, 2),
+        "CORE_EULER_DT": _fmt(metrics_module.FLOOD_PARAMS.dt, 1),
+        "CORE_DETECTION_THRESHOLD": _fmt(race_module.DETECTION_THRESHOLD, 1),
+        "CORE_PAR_SECONDS": _fmt(race_module.PAR_SECONDS_PER_FURLONG, 1),
+        "CORE_BASE_WEIGHT": _fmt(race_module.BASE_WEIGHT, 0),
+        "CORE_WEIGHT_SEC_PER_LB": _fmt(race_module.WEIGHT_SECONDS_PER_LB, 2),
+        "CORE_PURSE": _fmt(race_module.PURSE, 0),
+        "CORE_DETECTION_PENALTY": _fmt(race_module.DETECTION_PENALTY, 0),
+        "CORE_MISSION_SEED": str(metrics_module.SEED),
+        "CORE_STAGES": ", ".join(chip_module.STAGES),
         # environment
         "PYTHON_VERSION": platform.python_version(),
         "GENERATION_TIMESTAMP": stamp,

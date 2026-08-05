@@ -34,9 +34,39 @@ def test_brief_declares_zorin_mission() -> None:
     brief = MissionProvider().brief()
     assert brief.codename == "ZORIN"
     assert brief.film == "a_view_to_a_kill"
-    assert len(brief.objectives) == 3
+    # one objective per model, one asset per fixed dataset
+    assert len(brief.objectives) == 6
     assert len(brief.assets) == 3
     assert any(c.kind == "determinism" for c in brief.constraints)
+
+
+def test_brief_assets_are_measured_not_hardcoded() -> None:
+    """Asset payloads must track the pure core, so they cannot go stale."""
+    brief = MissionProvider().brief()
+    assets = {a.name: a.payload for a in brief.assets}
+    chain = chip.build_default_supply_chain()
+    mine = flood.build_default_mine()
+    assert assets["supply_chain"] == {"nodes": len(chain.suppliers), "links": len(chain.links)}
+    assert assets["main_strike"] == {"chambers": len(mine.chambers), "tunnels": len(mine.tunnels)}
+    assert assets["race_card"] == {
+        "horses": len(race.form_ratings(race.FORM_TABLE)),
+        "records": len(race.FORM_TABLE),
+    }
+
+
+def test_recon_findings_quote_measured_dataset_sizes() -> None:
+    """Every count in a recon finding must equal the live computed value."""
+    report = MissionProvider().recon(ReconRequest("survey"))
+    findings = {f.label: f.detail for f in report.findings}
+    chain = chip.build_default_supply_chain()
+    mine = flood.build_default_mine()
+    assert f"{len(chain.suppliers)} firms" in findings["supply_chain"]
+    assert f"{len(chain.links)} supply links" in findings["supply_chain"]
+    assert f"{len(mine.chambers)} chambers" in findings["mine"]
+    assert f"{len(mine.tunnels)} tunnels" in findings["mine"]
+    assert f"{sum(c.volume for c in mine.chambers):.0f} m^3" in findings["mine"]
+    assert f"{len(race.FORM_TABLE)} records" in findings["race_card"]
+    assert findings["goal"] == "survey"
 
 
 def test_full_mission_flow_is_deterministic() -> None:
