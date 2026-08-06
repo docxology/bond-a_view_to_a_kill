@@ -135,7 +135,10 @@ and `optimal_acquisition` exhaustively searches over every $K$-subset with
 deterministic tie-breaking. `greedy_acquisition` is the hill-climbing baseline
 that adds the single firm giving the largest score gain at each step. Because
 the exhaustive search is optimal, $\mathrm{greedy} \le \mathrm{optimal}$
-always; with the default budget of {{ACQ_BUDGET}} the optimal acquisition
+always; in fact both objectives are *strategically monotone* — the marginal
+gain of adding any candidate is its capacity times a factor common to all
+candidates — so $\mathrm{greedy} = \mathrm{optimal}$ holds on every market,
+not merely on this dataset (verified exhaustively in `test_acquisition.py`); with the default budget of {{ACQ_BUDGET}} the optimal acquisition
 (`{{ACQ_OPTIMAL_ACQUIRED}}`) lifts HHI from {{ACQ_BASELINE_HHI}} to
 {{ACQ_OPTIMAL_HHI}}, a gain of {{ACQ_HHI_GAIN}} over buying nothing, while the
 greedy baseline reaches {{ACQ_GREEDY_HHI}} (regret {{ACQ_REGRET}}). The same

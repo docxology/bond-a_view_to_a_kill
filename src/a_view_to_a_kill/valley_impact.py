@@ -171,7 +171,7 @@ def valley_capacity_loss(
         return 0.0
     total = sum(f.capacity for f in fab_list)
     if total <= 0:
-        return 0.0
+        return 0.0  # pragma: no cover - SurfaceFab rejects non-positive capacity; empty list handled above
     lost = 0.0
     for f in fab_list:
         at = fab_inoperable_at(network, result, f)

@@ -269,3 +269,21 @@ def test_reproducibility_section_names_the_module_actually_called() -> None:
     doc = (MANUSCRIPT / "06_reproducibility.md").read_text(encoding="utf-8")
     assert "mission.run_mission_metrics()" not in doc
     assert "metrics.run_mission_metrics(scenario)" in doc
+
+
+def test_zorin_fab_is_a_computed_survivor_under_the_shipped_scenario() -> None:
+    """Bind the prose claim that ZORIN's own plant survives the flood.
+
+    `03_results.md` and `02_methodology.md` assert `zorin_fab` is among the
+    survivors. Survivorship is scenario-dependent (owned fabs are not in the
+    acquisition set the other literal-name test guards), so this recomputes the
+    survivor set from the *shipped* config scenario and requires the claim to
+    hold — and to reach the page through the token, not as an unbound literal.
+    """
+    config = yaml.safe_load((MANUSCRIPT / "config.yaml").read_text(encoding="utf-8"))
+    scenario = metrics.scenario_from_config(config["experiment"])
+    survivors = set(metrics.valley_metrics(scenario)["survivors"])
+    assert "zorin_fab" in survivors
+
+    variables = msv.generate_variables()
+    assert "zorin_fab" in variables["VALLEY_SURVIVORS"]

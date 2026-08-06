@@ -27,6 +27,24 @@ head, so it can order which plants fall and when relative to each other, but
 its absolute inundation times inherit the weir model's simplifications and
 should not be read as an engineering prediction.
 
+### Uncertainty
+
+The package reports deterministic point estimates, not distributions: no
+quantity carries a confidence interval. That is a design property, not an
+oversight — the models are exactly reproducible given the fixed datasets and
+scenario (byte-identical reruns are themselves a checked gate), but
+reproducibility is a statement about the *computation*, not about the
+real-world phenomena the film's scheme gestures at. Every result is conditional
+on the scenario knobs in `manuscript/config.yaml` and on the documented model
+datasets (capacities, gallery geometry, elevations, race times); change a knob
+or a datum and the numbers move, which is precisely why each one is surfaced as
+a token rather than a frozen numeral, and why sensitivity is exercised by
+re-running the prescribed experiment under an alternative `experiment:` block
+rather than by reading a delta off this page. In particular the flood
+inundation times, the valley victim/survivor split, and the cover-detection
+probability are all model-conditioned and should not be read as engineering or
+actuarial predictions.
+
 ## Related work
 
 - **Concentration and choke points.** The Herfindahl-Hirschman index is the
@@ -38,10 +56,13 @@ should not be read as an engineering prediction.
   cascade is a standard network-flow construction [@ast].
 - **Acquisition as combinatorial selection.** Choosing which competitors to
   buy under a budget is subset selection against a set objective. We report
-  the exhaustive optimum alongside a greedy baseline precisely because greedy
-  heuristics on such objectives carry no general optimality guarantee — the
-  measured regret is the interesting quantity, and on this graph it happens to
-  be zero.
+  the exhaustive optimum alongside a greedy baseline because greedy heuristics
+  on such objectives carry no *general* optimality guarantee. On the two
+  objectives shipped here the guarantee actually holds: both are strategically
+  monotone, so greedy is exact by construction and the regret is provably zero
+  for every market — verified exhaustively over a deterministic counterexample
+  grid in `test_acquisition.py`. The exhaustive path remains the correctness
+  oracle and the upper bound the scenario is scored against.
 - **Network water flow.** The weir/head-driven flow law used here is a
   simplification of the open-channel flow models used in flood and mine
   drainage engineering; the key property preserved is exact mass conservation.

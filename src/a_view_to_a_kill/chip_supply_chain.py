@@ -185,7 +185,7 @@ def _stage_of(chain: SupplyChain, name: str) -> str:
     for supplier in chain.suppliers:
         if supplier.name == name:
             return supplier.stage
-    raise ValueError(f"unknown supplier {name!r}")
+    raise ValueError(f"unknown supplier {name!r}")  # pragma: no cover - validate_graph rejects unknown names first
 
 
 def successors(chain: SupplyChain) -> dict[str, tuple[str, ...]]:
@@ -217,7 +217,7 @@ def market_share(chain: SupplyChain, stage: str | None = None) -> dict[str, floa
     selected = {s.name: caps[s.name] for s in chain.suppliers if stage is None or s.stage == stage}
     total = sum(selected.values())
     if total <= 0:
-        return {}
+        return {}  # pragma: no cover - Supplier rejects non-positive capacity, SupplyChain rejects empty suppliers
     return {name: val / total for name, val in selected.items()}
 
 
@@ -361,6 +361,10 @@ def post_elimination_hhi(chain: SupplyChain, acquired: Iterable[str] = ()) -> fl
     close to a monopoly the attack brings the whole supply chain.
     """
     acquired_set = set(acquired)
+    names = {s.name for s in chain.suppliers}
+    unknown = acquired_set - names
+    if unknown:
+        raise ValueError(f"acquired firms unknown: {sorted(unknown)}")
     zorin = _zorin_owned(chain) | acquired_set
     caps = _capacity_by_name(chain)
     merged: dict[str, float] = {}
@@ -372,7 +376,7 @@ def post_elimination_hhi(chain: SupplyChain, acquired: Iterable[str] = ()) -> fl
             merged[s.name] = caps_val
     total = sum(merged.values())
     if total <= 0:
-        return 0.0
+        return 0.0  # pragma: no cover - Supplier rejects non-positive capacity, SupplyChain rejects empty suppliers
     return float(sum((v / total) ** 2 for v in merged.values()) * 10000.0)
 
 

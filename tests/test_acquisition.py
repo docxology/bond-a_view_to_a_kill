@@ -129,3 +129,48 @@ def test_improvement_preserves_optimum() -> None:
     best, score = acq.optimal_acquisition(_default(), 2, "hhi")
     assert improved.acquired == best
     assert improved.score == pytest.approx(score)
+
+
+def _probe_chain(zorin_cap: float, indep_caps: tuple[float, ...]) -> chip.SupplyChain:
+    """A small fabrication-only supply chain for the exhaustive greedy probe."""
+    suppliers = [chip.Supplier("w", "wafer", 1000.0)]
+    suppliers.append(chip.Supplier("zfab", "fabrication", zorin_cap, "zorin"))
+    for i, c in enumerate(indep_caps):
+        suppliers.append(chip.Supplier(f"f{i}", "fabrication", c))
+    return chip.SupplyChain(
+        suppliers=tuple(suppliers),
+        links=tuple(("w", s.name) for s in suppliers[1:]),
+    )
+
+
+def test_greedy_is_exact_for_the_monotone_acquisition_objectives() -> None:
+    r"""V3 resolution: no discriminating (regret > 0) fixture exists, because
+    both acquisition objectives are strategically monotone.
+
+    Writing the post-elimination HHI for acquisition set ``A`` (merged entity
+    capacity ``M = Z + sum_A c_i``, others keep their square terms):
+
+        HHI(A) \propto M^2 + sum_{i not in A} c_i^2
+              = const + 2 Z sum_A c_i + 2 sum_{pairs in A} c_p c_q.
+
+    The marginal gain of adding any candidate ``x`` to the incumbent set is
+    then ``c_x * (Z + sum_incumbent c_i)``: proportional to ``c_x`` times a
+    factor common to every candidate, so greedy (take the largest each step)
+    is *provably* optimal on every chain, not merely this one. The fab-share
+    objective, ``(Z + sum_A)/T``, is likewise monotone in ``sum_A``, so greedy
+    (top-K by capacity) is exact. Asserted exhaustively over a deterministic
+    grid below, for both objectives.
+    """
+    from itertools import product as _product
+
+    for nfabs in (3, 4):
+        for budget in range(1, nfabs):
+            for zc in range(1, 5):
+                for caps in _product(range(1, 6), repeat=nfabs):
+                    chain = _probe_chain(zc, caps)
+                    for objective in ("hhi", "fab_share"):
+                        _, opt = acq.optimal_acquisition(chain, budget, objective)
+                        _, grd = acq.greedy_acquisition(chain, budget, objective)
+                        assert grd == pytest.approx(opt), (
+                            f"greedy regret>0 at zorin={zc} caps={caps} budget={budget} objective={objective}"
+                        )

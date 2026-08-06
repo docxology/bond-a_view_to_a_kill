@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from a_view_to_a_kill import race_analytics as race
@@ -139,3 +141,34 @@ def test_cover_bankroll_overround_widens_the_book_and_shrinks_the_edge() -> None
     dear = mkt.cover_bankroll(_ratings(), "Pegasus", 0.2, 100_000.0, overround=1.30)
     assert dear.market_implied_probability > cheap.market_implied_probability
     assert dear.value_edge < cheap.value_edge
+
+
+# ---------------------------------------------------------------- round-2 hardening (C3/C4/V2 + NaN)
+def test_market_odds_rejects_un_normalized_input() -> None:
+    """C3: raw form ratings passed as probabilities must be rejected, not
+    silently renormalized — that laundering path once hid a cover-finance bug."""
+    with pytest.raises(ValueError, match="must sum to 1.0"):
+        mkt.market_odds({"a": 80.0, "b": 20.0})
+
+
+def test_market_odds_rejects_decimal_odds_below_one() -> None:
+    """C4: a probability whose overround-scaled implied exceeds 1 would price
+    a decimal odd below 1.0 (the bettor is paid less than the stake) — rejected."""
+    with pytest.raises(ValueError, match="would fall below 1.0"):
+        mkt.market_odds({"a": 1.0, "b": 0.0}, 1.12)
+
+
+def test_market_odds_zero_probability_prices_infinite_odds() -> None:
+    """V2: a genuinely zero-probability horse (under a small enough overround
+    that no other horse trips the <1.0 guard) prices at infinite decimal odds."""
+    odds = mkt.market_odds({"a": 0.99, "b": 0.01, "c": 0.0}, 1.005)
+    assert odds["c"] == float("inf")
+    assert mkt.implied_probability(odds["c"]) == 0.0
+    assert odds["a"] > 1.0 and odds["b"] > 1.0
+
+
+def test_kelly_fraction_on_infinite_odds_is_the_true_probability() -> None:
+    """Regression: kelly_fraction(p, inf) previously returned NaN (inf/inf).
+    The limit of (p*o - 1)/(o - 1) as o -> inf is p, the honest value."""
+    assert mkt.kelly_fraction(0.4, float("inf")) == pytest.approx(0.4)
+    assert math.isfinite(mkt.kelly_fraction(0.4, float("inf")))

@@ -73,10 +73,15 @@ Table: Acquisition optimizer on the default market (budget {{ACQ_BUDGET}}).
 
 The exhaustive optimum ([@fig:acquisition_curve]) lifts concentration from
 {{ACQ_BASELINE_HHI}} to {{ACQ_OPTIMAL_HHI}} with just {{ACQ_BUDGET}}
-acquisitions; on this graph greedy matches the optimum (regret
-{{ACQ_REGRET}}), so the naive strategy is not the failure mode here — the
-headline is the *scale* of the concentration a {{ACQ_BUDGET}}-firm buy
-achieves.
+acquisitions. Greedy is exact here (regret {{ACQ_REGRET}}) — and this is
+*not* a happy accident of this dataset. Both acquisition objectives are
+*strategically monotone*: the marginal gain of adding any fabricator is that
+fabricator's capacity times a factor common to every candidate, so greedy is
+provably optimal on *every* market, not merely this one (a proof sketch and an
+exhaustive deterministic counterexample probe live in `test_acquisition.py`).
+The exhaustive optimizer's remaining value is as a correctness oracle and as
+the upper bound against which the scenario's shortfall is scored; the headline
+remains the *scale* of the concentration a {{ACQ_BUDGET}}-firm buy achieves.
 
 ### Scenario versus optimizer
 

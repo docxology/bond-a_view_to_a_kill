@@ -323,3 +323,11 @@ def test_valley_capacity_loss_is_zero_for_an_empty_fab_list() -> None:
     mine = _tiny_mine()
     sim = flood.simulate_flood(mine, ("adit",), flood.FloodParams(1.0, 10.0))
     assert valley.valley_capacity_loss(mine, sim, (), 10.0) == 0.0
+
+
+def test_post_elimination_hhi_rejects_unknown_acquired_firm() -> None:
+    """Contract parity with ``monopoly_share``: a typo'd acquired firm must
+    raise, not be silently ignored (silent ignoring would quietly change the
+    reported post-elimination HHI while ``monopoly_share`` raised)."""
+    with pytest.raises(ValueError, match="acquired firms unknown"):
+        chip.post_elimination_hhi(chip.build_default_supply_chain(), ("ghost_fab",))

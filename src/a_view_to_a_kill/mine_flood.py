@@ -352,7 +352,7 @@ def flooded_fraction(result: FloodResult, t: float) -> float:
     vol = result.volumes[:, step]
     full = result.full_volumes
     if full.size == 0:
-        return 0.0
+        return 0.0  # pragma: no cover - MineNetwork rejects an empty chamber tuple
     return float(np.count_nonzero(vol >= full) / full.size)
 
 
@@ -366,7 +366,7 @@ def water_balance_error(result: FloodResult) -> float:
     """
     total_in = result.params.ingress_rate * result.params.horizon
     if total_in <= 0.0:
-        return 0.0
+        return 0.0  # pragma: no cover - FloodParams requires positive ingress_rate and horizon
     held = float(np.sum(result.volumes[:, -1]))
     return abs(held - total_in) / total_in
 

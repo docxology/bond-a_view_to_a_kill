@@ -357,3 +357,83 @@ If `uv` fails with `Failed to initialize cache at /Users/4d/.cache/uv`, the
 call is sandboxed — re-run it with the sandbox disabled. If `pyproject.toml`
 changes, sync with `uv sync --all-extras`; a bare `uv sync` prunes pytest and
 `uv run pytest` then silently resolves a different interpreter.
+
+## Round-2 (2026-08-06)
+
+Hostile-review pass plus a manuscript round. This round resolves pre-existing
+items **C1, C2, C3, C4, V1, V2** and **closes V3 with a proof rather than a
+fixture**; D1 and E1–E3 remain open as originally scoped. **Live state now:
+313 tests passing, 100.00% line + branch coverage on `src/`, 0 uncovered
+statements across all 10 modules** (baseline for the round: 306 / 99.17% / 6
+uncovered).
+
+### Findings and fixes (each with a regression / negative-control test)
+
+- **F1 (C2/C3/C4) — `race_market.market_odds` hardened.** The function silently
+  renormalized non-probability input (`{"a": 80.0, "b": 20.0}` was accepted),
+  carried an unreachable `else 0.0` conditional, and could emit decimal odds
+  below 1.0 for any `p_i * overround > 1`. It now (a) rejects input whose
+  values do not sum to 1 within `PROB_SUM_TOLERANCE`, (b) has no dead
+  conditional, and (c) raises `ValueError` when any overround-scaled implied
+  exceeds 1. Tests: `test_market_odds_rejects_un_normalized_input`,
+  `test_market_odds_rejects_decimal_odds_below_one` (`test_race_market.py`).
+- **F2 (V2) — the zero-probability odds branch is now exercised.** A genuinely
+  zero-probability horse prices at `float("inf")`; pinned by
+  `test_market_odds_zero_probability_prices_infinite_odds`.
+- **F3 (new) — `kelly_fraction(p, inf)` returned NaN.** With infinite odds
+  (market-implied probability 0) and a positive true chance,
+  `edge / (odds - 1)` evaluated to `inf / inf = NaN`. Fixed to return the honest
+  limit `p` as `odds -> inf`; test
+  `test_kelly_fraction_on_infinite_odds_is_the_true_probability`.
+- **F4 (new) — cross-module contract drift in `post_elimination_hhi`.**
+  `monopoly_share` rejected unknown acquired firms while `post_elimination_hhi`
+  silently ignored them, so a typo'd firm quietly changed the reported HHI.
+  Added the same `ValueError`. Test
+  `test_post_elimination_hhi_rejects_unknown_acquired_firm`
+  (`test_validation_paths.py`).
+- **F5 (C1) — the six unreachable defensive guards are closed** with
+  `# pragma: no cover` plus a one-line invariant rationale
+  (`chip_supply_chain.py:188,220,375`, `mine_flood.py:355,369`,
+  `valley_impact.py:174`). Coverage now shows `Miss 0` on all three files.
+- **F6 (V1) — `zorin_fab` survivorship is bound to the shipped scenario.**
+  Added `test_zorin_fab_is_a_computed_survivor_under_the_shipped_scenario`,
+  which recomputes the survivor set from the config scenario (survivorship is
+  scenario-dependent and `zorin_fab` is outside the acquisition-literal guard).
+- **F7 (V3) — greedy is provably optimal; no discriminating fixture exists.**
+  Exhaustive search found **zero** `regret > 0` cases (93,184 HHI scenarios +
+  43,200 fab_share scenarios). Proof: for `post_elimination_hhi` the marginal
+  gain of adding any fabricator is `c_x * (Z + sum_incumbent)` — its capacity
+  times a factor common to all candidates — so greedy (largest each step) is
+  exact on *every* market; `fab_share` is monotone in the acquired sum. The
+  TODO's premise of a trap fixture was therefore wrong. Replaced the reliance
+  on `test_greedy_never_beats_optimal`'s tie arm with
+  `test_greedy_is_exact_for_the_monotone_acquisition_objectives`, asserting
+  exact equality over a deterministic grid for both objectives.
+
+### Manuscript improvements
+
+- Corrected the greedy-regret narrative in `03_results.md`,
+  `02_methodology.md`, and `07_scope_and_related_work.md` from "on this graph
+  it happens to be zero" to the proven monotonicity statement.
+- Added an explicit **`### Uncertainty`** subsection to
+  `07_scope_and_related_work.md`: deterministic point estimates only, every
+  result conditional on the scenario + datasets, sensitivity exercised by
+  re-running under an alternative `experiment:` block.
+
+### Gate numbers (measured this session)
+
+| Gate | Result |
+|---|---|
+| `uv run pytest tests/ --cov=src --cov-fail-under=90` | **313 passed, 0 failed, 0 skipped; 100.00% coverage, 0 uncovered** (baseline 306 / 99.17% / 6) |
+| `uv run ruff check src/ scripts/ tests/` | All checks passed |
+| `uv run ruff format --check src/ scripts/ tests/` | 36 files already formatted |
+| `uv run mypy src/ scripts/` | Success — 18 source files |
+| `uv run python scripts/z_generate_manuscript_variables.py` | 87 tokens resolved strictly, 9 sections, 5 figures |
+
+### Left for a future round
+
+- **D1** (standing check that sibling `bond-manuscript` tracks corrected ZORIN
+  figures) and **E1 / E2 / E3** (bisected `fab_inoperable_at`, scaled
+  acquisition, `bond-utilities` provenance delegation) remain as originally
+  scoped and were intentionally not touched.
+- `docs/_generated/COUNTS.md` refreshed to 313 / 100.00% / all 10 modules.
