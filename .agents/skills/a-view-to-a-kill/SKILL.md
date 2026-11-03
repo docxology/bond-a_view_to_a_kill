@@ -6,8 +6,8 @@ description: Build/maintain the PROJECT BOND film package a_view_to_a_kill (ZORI
 # a-view-to-a-kill (ZORIN) — in-repo skill
 
 PROJECT BOND film package for *A View to a Kill* (1985), mission codename
-ZORIN. Local-only tree under `projects/working/bond/a_view_to_a_kill/` —
-never push, no remote.
+ZORIN. Published tree; `origin` is `docxology/bond-a_view_to_a_kill` — land
+changes through an ordinary branch, pull request and merge.
 
 ## When to use
 

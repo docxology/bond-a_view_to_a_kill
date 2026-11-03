@@ -1,6 +1,6 @@
 # a_view_to_a_kill — AGENTS.md (ZORIN)
 
-**A PROJECT BOND film package (local-only working tree — never push).**
+**A PROJECT BOND film package (published working tree — `origin` is `docxology/bond-a_view_to_a_kill`).**
 Mission codename **ZORIN** from *A View to a Kill* (1985). This package
 formalizes ZORIN's scheme as six deterministic computational models and
 implements the FROZEN `bond_api.MissionProvider` protocol around them.
