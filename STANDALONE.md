@@ -13,7 +13,7 @@ a pure domain core importable without `bond_api`, and the FROZEN `bond_api`
 To run it in place:
 
 ```bash
-cd /Users/4d/Documents/GitHub/template/projects/working/bond/a_view_to_a_kill
+cd "$(git rev-parse --show-toplevel)"   # the package root, wherever the checkout lives
 uv sync --extra dev
 uv run pytest tests/ --cov=src --cov-fail-under=90
 ```

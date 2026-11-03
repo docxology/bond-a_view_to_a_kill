@@ -40,7 +40,7 @@ thin CLIs.
 ## Quick commands
 
 ```bash
-cd /Users/4d/Documents/GitHub/template/projects/working/bond/a_view_to_a_kill
+cd "$(git rev-parse --show-toplevel)"   # the package root, wherever the checkout lives
 uv sync --extra dev
 uv run python scripts/z_generate_manuscript_variables.py   # tokens + figures -> output/
 uv run python scripts/mission_execute.py                    # run the mission
