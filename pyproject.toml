@@ -36,8 +36,10 @@ dev = [
 
 [tool.uv.sources]
 # FROZEN protocol dependency (Layer 1): the MissionProvider contract every
-# film package implements. Path dependency into the sibling bond-api tree.
-bond-api = { path = "../bond-api" }
+# film package implements. The path resolves to the vendored copy, whose bytes
+# are recorded in vendor/bond-api/PROVENANCE.json and re-checked in the suite
+# by scripts/vendor.py --check.
+bond-api = { path = "vendor/bond-api" }
 
 [tool.pytest.ini_options]
 # RASP Strict Assertion: Tests must be clearly separated and structurally identifiable
@@ -75,6 +77,8 @@ exclude_lines = [
 # Project-local mypy settings (the monorepo root config has no mypy_path for
 # this package's src/ layout). Mirrors the bond-api build: strict-ish typing,
 # explicit package bases, ignore missing stubs.
+# Vendored copies are a dependency; their bytes are bound by scripts/vendor.py.
+exclude = ["(^|/)vendor/"]
 python_version = "3.12"
 mypy_path = ["src"]
 explicit_package_bases = true
@@ -89,3 +93,7 @@ ignore_missing_imports = true
 
 [tool.uv]
 # Inherits workspace settings from root pyproject.toml
+
+[tool.ruff]
+# The vendored copies are byte-identical to upstream and must stay that way.
+extend-exclude = ["vendor"]
