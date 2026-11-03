@@ -1,8 +1,9 @@
 # STANDALONE — a_view_to_a_kill (ZORIN)
 
 This is a PROJECT BOND film package that happens to live inside the template
-monorepo's `projects/working/bond/` tree. It is **local-only**: there is no
-remote and it is never pushed.
+monorepo's `projects/working/bond/` tree. It is **published**: `origin` is
+`docxology/bond-a_view_to_a_kill`, and changes land through an ordinary branch,
+pull request and merge.
 
 It started from the template's code-project scaffold and was converted in
 phase 1 into a self-contained package with its own git history (own `main`),

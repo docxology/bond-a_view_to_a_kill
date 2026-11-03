@@ -106,5 +106,5 @@ frozen protocol), and [`testing_philosophy.md`](docs/testing_philosophy.md).
 injected token, never hand-authored. [`TODO.md`](TODO.md) tracks remaining
 work.
 
-The tree is **local-only**: there is no remote, and nothing here is ever
-pushed.
+The tree is **published**: `origin` is `docxology/bond-a_view_to_a_kill`, and
+changes land through an ordinary branch, pull request and merge.

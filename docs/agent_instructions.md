@@ -17,9 +17,11 @@ Read this file before touching any other file in this package.
 
 ## Rule 0: Scope
 
-Work only inside this package directory. This tree is **local-only** with no
-git remote: commit here, never push. Do not edit sibling BOND packages, the
-bond suite root, or the template repo from inside this package.
+Work only inside this package directory. This tree is **published**: `origin`
+is `docxology/bond-a_view_to_a_kill`, and changes land through an ordinary
+branch, pull request and merge — committing this package's paths only. Do not
+edit sibling BOND packages, the bond suite root, or the template repo from
+inside this package.
 
 ---
 

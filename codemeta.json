@@ -2,7 +2,7 @@
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "name": "A View to a Kill: ZORIN — Special-Agent Mission Software",
-  "codeRepository": "local-only (no remote)",
+  "codeRepository": "https://github.com/docxology/bond-a_view_to_a_kill",
   "programmingLanguage": "Python",
   "runtimePlatform": "Python >= 3.10",
   "license": "MIT",

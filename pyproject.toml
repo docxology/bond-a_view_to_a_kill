@@ -3,7 +3,7 @@
 # supply-chain security, flood-the-mine water-ingress dynamics, and
 # horse-race form analytics (cover-operation modeling).
 # Inherits workspace settings from the monorepo root pyproject.toml; this
-# tree is local-only (no remote, never push).
+# tree is published at github.com/docxology/bond-a_view_to_a_kill.
 
 [build-system]
 requires = ["setuptools>=61.0"]
