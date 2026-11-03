@@ -331,8 +331,8 @@ recorded so nobody re-litigates them.
 
 ## Verification
 
-All of these must pass before a commit. Run from
-`/Users/4d/Documents/GitHub/template/projects/working/bond/a_view_to_a_kill`.
+All of these must pass before a commit. Run from the package root, wherever the checkout
+lives: `cd "$(git rev-parse --show-toplevel)"`.
 
 | Command | Expected outcome (measured this session) |
 |---|---|
