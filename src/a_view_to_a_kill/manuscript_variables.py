@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import platform
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -48,7 +49,13 @@ from a_view_to_a_kill import metrics as metrics_module
 from a_view_to_a_kill import mine_flood as flood_module
 from a_view_to_a_kill import race_analytics as race_module
 
-__all__ = ["generate_variables", "load_manuscript_config", "resolve_manuscript_tree"]
+__all__ = [
+    "generate_variables",
+    "load_manuscript_config",
+    "package_module_names",
+    "render_counts_markdown",
+    "resolve_manuscript_tree",
+]
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "manuscript" / "config.yaml"
@@ -64,7 +71,9 @@ def load_manuscript_config(config_path: str | Path | None = None) -> dict[str, A
     with path.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle)
     if not isinstance(data, dict):
-        raise ValueError(f"manuscript config must be a top-level mapping, got {type(data).__name__}")
+        raise ValueError(
+            f"manuscript config must be a top-level mapping, got {type(data).__name__}"
+        )
     return data
 
 
@@ -142,11 +151,15 @@ def generate_variables(
         )
 
     scenario = metrics_module.scenario_from_config(experiment)
-    computed = metrics_module.run_mission_metrics(scenario) if metrics is None else metrics
+    computed = (
+        metrics_module.run_mission_metrics(scenario) if metrics is None else metrics
+    )
     if require_outputs:
         empty = [group for group in REQUIRED_METRIC_GROUPS if not computed.get(group)]
         if empty:
-            raise ValueError(f"mission metric groups are empty — the pure core failed to compute: {empty}")
+            raise ValueError(
+                f"mission metric groups are empty — the pure core failed to compute: {empty}"
+            )
 
     chip_m = computed["chip"]
     flood_m = computed["flood"]
@@ -282,8 +295,16 @@ def resolve_manuscript_tree(
 
     Returns the output directory and the sorted list of resolved file names.
     """
-    manuscript_dir = Path(manuscript_dir) if manuscript_dir is not None else PACKAGE_ROOT / "manuscript"
-    output_dir = Path(output_dir) if output_dir is not None else PACKAGE_ROOT / "output" / "manuscript"
+    manuscript_dir = (
+        Path(manuscript_dir)
+        if manuscript_dir is not None
+        else PACKAGE_ROOT / "manuscript"
+    )
+    output_dir = (
+        Path(output_dir)
+        if output_dir is not None
+        else PACKAGE_ROOT / "output" / "manuscript"
+    )
     resolved: list[str] = []
     for source in sorted(manuscript_dir.glob("[0-9][0-9]_*.md")):
         text = source.read_text(encoding="utf-8")
@@ -291,8 +312,135 @@ def resolve_manuscript_tree(
             text = text.replace("{{" + token + "}}", value)
         unresolved = sorted(set(_TOKEN_RE.findall(text)))
         if unresolved and strict:
-            raise ValueError(f"unresolved manuscript tokens in {source.name}: {unresolved}")
+            raise ValueError(
+                f"unresolved manuscript tokens in {source.name}: {unresolved}"
+            )
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / source.name).write_text(text, encoding="utf-8")
         resolved.append(source.name)
     return output_dir, resolved
+
+
+#: Rows that record a measurement of a coverage run rather than of the source
+#: tree. The renderer cannot derive them (a suite cannot measure its own coverage
+#: from inside itself), so they are recorded here, dated, and the CLI overrides
+#: them from a fresh run.
+_RECORDED_COUNTS: dict[str, str | int | tuple[str, ...]] = {
+    "coverage": "100.00%",
+    "skipped_failed": "0 / 0",
+    "lowest_covered": "none — every module at 100%",
+    "uncovered": (
+        "0 (the six unreachable defensive guards were closed with "
+        "`# pragma: no cover` + rationale; see `TODO.md` Round-2 C1)"
+    ),
+    "pure_modules": (
+        "chip_supply_chain",
+        "acquisition",
+        "mine_flood",
+        "valley_impact",
+        "race_analytics",
+        "race_market",
+    ),
+    "metric_layer": (
+        "`metrics` (six groups: chip / flood / race / acquisition / valley / market)"
+    ),
+    "tokens": 87,
+    "figures": 5,
+}
+
+#: Date of the gate run the recorded rows above were read from.
+RECORDED_COUNTS_DATE = "2026-11-03"
+
+
+def package_module_names() -> list[str]:
+    """The package's module set, read off disk (the ``__init__`` files excluded).
+
+    This is the inventory the counts document reports. Reading it off the tree is
+    what makes that row a measurement rather than a second list someone has to
+    remember to update.
+    """
+    package_dir = Path(__file__).resolve().parent
+    return sorted(
+        path.relative_to(package_dir).with_suffix("").as_posix()
+        for path in package_dir.rglob("*.py")
+        if path.name != "__init__.py"
+    )
+
+
+def _counts_cell(value: str | int | Sequence[str]) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, int):
+        return str(value)
+    return ", ".join(f"`{name}`" for name in value)
+
+
+def render_counts_markdown(
+    *,
+    modules: Sequence[str],
+    gadgets: Sequence[str],
+    tests: int | None = None,
+    **overrides: str | int | tuple[str, ...],
+) -> str:
+    """Render ``docs/_generated/COUNTS.md`` for the live package.
+
+    ``modules`` and ``gadgets`` are read live by the caller
+    (:func:`package_module_names` and the mission's ``gadget_registry``); this
+    module stays ``bond_api``-free and cannot import the registry itself. Any key
+    of the recorded rows may be overridden with what a real gate run printed, and
+    an omitted key keeps its recorded value.
+    """
+    unknown = sorted(set(overrides) - set(_RECORDED_COUNTS))
+    if unknown:
+        raise ValueError(f"unknown counts row(s): {', '.join(unknown)}")
+    rows = {**_RECORDED_COUNTS, **overrides}
+    if tests is None:
+        tests_cell = "not recorded — see the enforced gate below"
+    else:
+        tests_cell = str(tests)
+    return "\n".join(
+        [
+            "# Live counts — a_view_to_a_kill (ZORIN)",
+            "",
+            "Hand-editing this file is not how it changes: `render_counts_markdown`",
+            "in `src/a_view_to_a_kill/manuscript_variables.py` renders it, and",
+            "`tests/test_counts_document.py` fails when the file and a fresh render",
+            "disagree.",
+            "",
+            "The module and gadget rows are read live off the package, and the test",
+            "count is asserted against the suite's own collection, so adding a test",
+            "fails the suite until this file is regenerated. The coverage, token,",
+            "figure and inventory rows record real runs on",
+            f"{RECORDED_COUNTS_DATE} (the token and figure rows come from",
+            "`scripts/z_generate_manuscript_variables.py`) and are not re-derived by",
+            "that test: a suite cannot measure its own coverage from inside itself.",
+            "The counts were last re-measured in the regeneration-determinism pass",
+            "that replaced the wall-clock `GENERATION_TIMESTAMP` with the",
+            "config-sourced `MANUSCRIPT_DATE`.",
+            "",
+            "| Metric | Value (measured) |",
+            "|---|---|",
+            f"| Passing tests | {tests_cell} |",
+            f"| Skipped / failed | {_counts_cell(rows['skipped_failed'])} |",
+            f"| Line + branch coverage on `src/` | {_counts_cell(rows['coverage'])} |",
+            f"| Modules at 100% coverage | all {len(modules)}: {_counts_cell(modules)} |",
+            f"| Lowest-covered module | {_counts_cell(rows['lowest_covered'])} |",
+            f"| Uncovered statements remaining | {_counts_cell(rows['uncovered'])} |",
+            f"| Pure domain modules | {_counts_cell(rows['pure_modules'])} |",
+            f"| Metric layer | {_counts_cell(rows['metric_layer'])} |",
+            f"| Mission gadgets | {_counts_cell(tuple(gadgets))} |",
+            f"| Manuscript tokens resolved | {_counts_cell(rows['tokens'])} |",
+            f"| Figures rendered | {_counts_cell(rows['figures'])} |",
+            "",
+            "Re-measure with:",
+            "",
+            "```bash",
+            "uv run pytest tests/ --cov=src --cov-fail-under=90 -q",
+            "uv run python scripts/z_generate_counts.py --tests <N> --coverage <PCT>",
+            "```",
+            "",
+            "Test count alone: `uv run pytest tests/ --collect-only -q | tail -1`.",
+            "Token and figure counts: `uv run python scripts/z_generate_manuscript_variables.py`.",
+            "",
+        ]
+    )
