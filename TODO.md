@@ -217,6 +217,34 @@ compares the two and fails on divergence.
 grep -c "0.238" ../bond-manuscript/manuscript/03_14_a_view_to_a_kill.md   # expect: 1
 ```
 
+### Toolchain
+
+#### T1 — `ruff check` and `ruff format --check` are red on `main`, and were red before the vendoring change
+
+Measured 2026-11-03: **82** findings on `src/ scripts/ tests/`, **38** of them
+auto-fixable (`RUF100` x17, `RUF022` x9, `I001` x5, `UP035` x5, `PIE808` x2). The
+rest are semantic or stylistic: `TRY004` x33, `EXE001` x6, `RUF046` x3,
+`PLW1510` x2. **25** files `ruff format` would reformat.
+
+The lint counts and the rule table are identical at the baseline commit
+`a0b1d28` and at the vendoring branch's head, and the unformatted set is **24**
+at the head rather than 25 because `src/a_view_to_a_kill/manuscript_variables.py`
+was edited and formatted in the same action — no file joined the set. The change
+therefore adds no debt to this red baseline, reduces the format debt by one file,
+and is not merged on a green gate.
+
+**Done when:** a format pass lands as one mechanical commit, then the remaining
+findings are resolved one at a time, with an explicit `noqa` and a reason at the
+site for the semantic ones. `PLW1510` adds `check=` to `subprocess.run` calls,
+`TRY004` changes the exception type callers see, and `EXE001` is a shebang whose
+file lost the executable bit; none of the three belongs inside a dependency
+change.
+
+```bash
+uv run ruff check src/ scripts/ tests/
+uv run ruff format --check src/ scripts/ tests/
+```
+
 ### Extension
 
 #### E1 — `fab_inoperable_at` is a linear scan over the flood series

@@ -1,14 +1,24 @@
 # Live counts — a_view_to_a_kill (ZORIN)
 
-Measured on the current `main` (regeneration-determinism pass: the wall-clock
-`GENERATION_TIMESTAMP` replaced by the config-sourced `MANUSCRIPT_DATE`, plus
-`tests/test_regeneration_determinism.py`). These numbers drift as the package
-evolves; regenerate them after changing tests or coverage, and never hardcode
-them in prose elsewhere.
+Hand-editing this file is not how it changes: `render_counts_markdown`
+in `src/a_view_to_a_kill/manuscript_variables.py` renders it, and
+`tests/test_counts_document.py` fails when the file and a fresh render
+disagree.
+
+The module and gadget rows are read live off the package, and the test
+count is asserted against the suite's own collection, so adding a test
+fails the suite until this file is regenerated. The coverage, token,
+figure and inventory rows record real runs on
+2026-11-03 (the token and figure rows come from
+`scripts/z_generate_manuscript_variables.py`) and are not re-derived by
+that test: a suite cannot measure its own coverage from inside itself.
+The counts were last re-measured in the regeneration-determinism pass
+that replaced the wall-clock `GENERATION_TIMESTAMP` with the
+config-sourced `MANUSCRIPT_DATE`.
 
 | Metric | Value (measured) |
 |---|---|
-| Passing tests | 313 |
+| Passing tests | 319 |
 | Skipped / failed | 0 / 0 |
 | Line + branch coverage on `src/` | 100.00% |
 | Modules at 100% coverage | all 10: `acquisition`, `chip_supply_chain`, `figures/plots`, `manuscript_variables`, `metrics`, `mine_flood`, `mission`, `race_analytics`, `race_market`, `valley_impact` |
@@ -23,8 +33,8 @@ them in prose elsewhere.
 Re-measure with:
 
 ```bash
-cd /Users/4d/Documents/GitHub/template/projects/working/bond/a_view_to_a_kill
 uv run pytest tests/ --cov=src --cov-fail-under=90 -q
+uv run python scripts/z_generate_counts.py --tests <N> --coverage <PCT>
 ```
 
 Test count alone: `uv run pytest tests/ --collect-only -q | tail -1`.

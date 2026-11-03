@@ -16,3 +16,6 @@ htmlcov/
 
 # Regenerable artifacts — script runs and smoke tests write here; never tracked.
 output/
+
+# Build output the vendored copies' own builds write into vendor/.
+vendor/**/build/
