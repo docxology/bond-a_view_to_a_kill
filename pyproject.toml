@@ -37,7 +37,7 @@ dev = [
 [tool.uv.sources]
 # FROZEN protocol dependency (Layer 1): the MissionProvider contract every
 # film package implements. Path dependency into the sibling bond-api tree.
-bond-api = { path = "/Users/4d/Documents/GitHub/template/projects/working/bond/bond-api" }
+bond-api = { path = "../bond-api" }
 
 [tool.pytest.ini_options]
 # RASP Strict Assertion: Tests must be clearly separated and structurally identifiable
