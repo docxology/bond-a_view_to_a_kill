@@ -465,3 +465,88 @@ uncovered).
   acquisition, `bond-utilities` provenance delegation) remain as originally
   scoped and were intentionally not touched.
 - `docs/_generated/COUNTS.md` refreshed to 313 / 100.00% / all 10 modules.
+
+## Workflowz review — 2026-11-10
+
+Bounded re-review of the published ZORIN tree. The existing **Open work** list
+already tracks C1–C4, V1–V3, D1, T1 and E1–E3; the two items below are new and
+non-overlapping. No silent production substitute was found in the inspected
+excerpts: the lazy `mission` resolution in
+`src/a_view_to_a_kill/__init__.py:62-68` (`__getattr` / `LAZY_SUBMODULES`) is an
+intentional, test-pinned compatibility adapter for the optional `bond-api` path
+dependency (pinned by `tests/test_bond_api_fallback.py`), not a mock/fallback
+that fakes computation. Vendored `vendor/bond-api` is excluded from lint/type
+gates by `pyproject.toml:81,99` and treated as a dependency, not reviewed source.
+
+### Documentation
+
+#### D2 — `render_cover` docstrings promise win-probability bars the figure never draws
+
+* **Priority:** P2
+* **Evidence:** `src/a_view_to_a_kill/figures/plots.py:8` (module docstring:
+  "`render_cover` — form ratings and win probability bars for the race card")
+  and `src/a_view_to_a_kill/figures/plots.py:79` (`"""Form ratings and
+  win-probability bars for the race card."""`) both promise win-probability
+  bars. The body, `src/a_view_to_a_kill/figures/plots.py:80-91`, computes only
+  `race.form_ratings(race.FORM_TABLE)`, plots `ratings[n].rating` via a single
+  `ax.barh`, titles it "Race-card form ratings (EWMA speed index)"
+  (`plots.py:86`) and labels the x-axis "Form rating" (`plots.py:87`). No
+  softmax win-probability series is computed or drawn, so the documented
+  behavior and the rendered figure disagree.
+* **Observable outcome:** the docstrings and the figure agree. Either (a) the
+  two docstrings are corrected to describe only the EWMA form-rating bars, or
+  (b) `render_cover` additionally renders the `race_analytics` softmax win
+  probabilities and a figure test asserts their presence. The figure count
+  stays at five (`README.md:36`), so option (b) extends the existing
+  `race_cover` figure rather than adding a sixth.
+* **Done when:** `render_cover`'s docstring and module docstring match what the
+  function draws, and `tests/test_figures.py` pins the chosen behavior.
+* **Probe (from repo root):**
+  ```bash
+  uv run pytest tests/test_figures.py -v
+  uv run python scripts/z_generate_manuscript_variables.py   # re-renders 5 figures; tokens resolve strictly
+  ```
+  Expected: both pass with the docstring/behavior aligned; if option (b) is
+  chosen, the new assertion on win-probability content passes.
+* **Dependencies/constraints:** figures must stay deterministic on the headless
+  Agg backend (`plots.py:21`) and byte-identical across reruns
+  (`tests/test_regeneration_determinism.py`). Any added win-probability series
+  must be computed from `race_analytics`, never hand-authored, per the layer
+  contract in `AGENTS.md:20` (`figures/` depend on `metrics.py`; metrics
+  computed, never authored).
+
+### Toolchain
+
+#### T2 — mypy `python_version = "3.12"` lags the interpreter pin `3.14`
+
+* **Priority:** P3
+* **Evidence:** `.python-version:1` pins the interpreter to `3.14`, but
+  `pyproject.toml:82` sets mypy `python_version = "3.12"`. The required gate
+  `uv run mypy src/ scripts/` (`AGENTS.md:63`) therefore type-checks against
+  3.12 semantics/stdlib while the code runs on 3.14, so the gate cannot catch
+  3.13/3.14-specific typing issues. The floor `requires-python = ">=3.11"`
+  (`pyproject.toml:20`) is a minimum, not a pin, and does not justify the 3.12
+  target.
+* **Current/target versions:** current mypy target **3.12**
+  (`pyproject.toml:82`); current interpreter pin **3.14** (`.python-version:1`).
+  Target: align mypy `python_version` to the actual interpreter pin. The
+  review-preferred interpreter target is **3.15.2**; no constraint forcing 3.12
+  is visible in the inspected manifests, but confirm against `uv.lock` and the
+  vendored `bond-api` before moving the interpreter pin itself — the mypy
+  alignment is independent of any interpreter bump and should not be a blind
+  latest-upgrade.
+* **Observable outcome:** mypy type-checks against the same interpreter the
+  package pins, and the type gate stays clean.
+* **Done when:** `pyproject.toml:82` `python_version` matches the
+  `.python-version` pin (or a comment records the concrete constraint that
+  requires the lower target), with no new mypy errors.
+* **Probe (from repo root):**
+  ```bash
+  uv run mypy src/ scripts/
+  ```
+  Expected: clean (no new errors) after aligning the target.
+* **Dependencies/constraints:** no actual dependency, fixture, deployment or
+  reproducibility constraint requiring 3.12 is visible in the inspected files;
+  verify `uv.lock` and `vendor/bond-api` before changing `.python-version`, and
+  keep the deterministic single-pinned-interpreter claim in `AGENTS.md:74-78`
+  intact.
