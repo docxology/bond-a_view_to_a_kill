@@ -6,6 +6,30 @@ Special-agent mission software that formalizes Max ZORIN's scheme as
 deterministic, fully-tested computational models, wrapped in the FROZEN
 `bond_api.MissionProvider` protocol.
 
+## Mission model
+
+```mermaid
+flowchart TD
+    accTitle: A View to a Kill implemented mission analyses
+    accDescr: Semiconductor capacity graph, mine chamber hydraulics and race-form market parameters feed Microchip market HHI choke points and budgeted monopoly acquisition; Head-driven mine flood simulation and Silicon Valley water-table impact; Speed-adjusted race-form ratings and overround Kelly cover finance. The mission adapter returns monopoly share, plant inundation timeline and betting edge reports with provenance, then a debrief.
+    I["Semiconductor capacity graph, mine chamber hydraulics and race-form market parameters"]
+    G0["Microchip market HHI choke points and budgeted monopoly acquisition"]
+    I --> G0
+    G1["Head-driven mine flood simulation and Silicon Valley water-table impact"]
+    I --> G1
+    G2["Speed-adjusted race-form ratings and overround Kelly cover finance"]
+    I --> G2
+    O["mission.py: execute returns MissionOutcome<br/>Monopoly share, plant inundation timeline, betting edge and provenance"]
+    G0 --> O
+    G1 --> O
+    G2 --> O
+    O --> F["debrief: mission summary"]
+```
+
+The branches group implemented capabilities; they do not imply a runtime order.
+
+**Source map:** [`chip_supply_chain.py`](src/a_view_to_a_kill/chip_supply_chain.py), [`acquisition.py`](src/a_view_to_a_kill/acquisition.py); [`mine_flood.py`](src/a_view_to_a_kill/mine_flood.py), [`valley_impact.py`](src/a_view_to_a_kill/valley_impact.py); [`race_analytics.py`](src/a_view_to_a_kill/race_analytics.py), [`race_market.py`](src/a_view_to_a_kill/race_market.py), [`metrics.py`](src/a_view_to_a_kill/metrics.py); [`mission.py`](src/a_view_to_a_kill/mission.py).
+
 ## The film, as a specification
 
 ZORIN plans to flood the abandoned mine workings under Silicon Valley,
