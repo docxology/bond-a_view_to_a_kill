@@ -1,5 +1,7 @@
 # Documentation — a_view_to_a_kill (ZORIN)
 
+[Package maintenance](package-maintenance.md) covers dependency and release records.
+
 This directory is the operational rulebook for agents and developers working
 inside `a_view_to_a_kill`, the PROJECT BOND film package for *A View to a Kill*
 (1985), mission codename **ZORIN**.

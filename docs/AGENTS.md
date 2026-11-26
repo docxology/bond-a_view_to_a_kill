@@ -1,5 +1,7 @@
 # docs/ — Agent-Facing Documentation (ZORIN)
 
+[Package maintenance](package-maintenance.md) identifies the dependency and citation records.
+
 | File | Purpose |
 |---|---|
 | `agent_instructions.md` | Behavioral rules for AI agents (read-first) |

@@ -1,5 +1,7 @@
 # a_view_to_a_kill — ZORIN
 
+See [package maintenance](docs/package-maintenance.md) for dependency and citation records.
+
 **PROJECT BOND film package · *A View to a Kill* (1985) · mission codename ZORIN**
 
 Special-agent mission software that formalizes Max ZORIN's scheme as
