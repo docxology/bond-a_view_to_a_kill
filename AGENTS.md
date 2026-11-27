@@ -1,5 +1,8 @@
 # a_view_to_a_kill — AGENTS.md (ZORIN)
 
+The [package maintenance guide](docs/package-maintenance.md) records the
+distribution identity, Python selection, dependency provenance, and citation metadata.
+
 **A PROJECT BOND film package (published working tree — `origin` is `docxology/bond-a_view_to_a_kill`).**
 Mission codename **ZORIN** from *A View to a Kill* (1985). This package
 formalizes ZORIN's scheme as six deterministic computational models and
